@@ -1,0 +1,37 @@
+﻿<Window x:Class="HandballIntegration.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        Title="Handball Manager"
+        Width="900" Height="600">
+
+    <Grid>
+
+        <ui:NavigationView
+            IsSettingsVisible="False"
+            SelectionChanged="NavigationView_SelectionChanged"
+            PaneTitle="Handball Manager">
+
+            <ui:NavigationView.MenuItems>
+
+                <ui:NavigationViewItem Content="Dashboard"
+                                       Tag="dashboard"
+                                       Icon="Home" />
+
+                <ui:NavigationViewItem Content="Intégration"
+                                       Tag="integration"
+                                       Icon="Upload" />
+
+                <ui:NavigationViewItem Content="Joueuses"
+                                       Tag="players"
+                                       Icon="People" />
+
+            </ui:NavigationView.MenuItems>
+
+            <!-- Page affichée -->
+            <Frame x:Name="ContentFrame" />
+
+        </ui:NavigationView>
+
+    </Grid>
+</Window>

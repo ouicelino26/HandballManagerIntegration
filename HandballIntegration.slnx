@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../HandballManagerCore/HandballManagerCore/HandballManagerCore.csproj" />
+  <Project Path="HandballIntegration/HandballIntegration.csproj" />
+</Solution>
