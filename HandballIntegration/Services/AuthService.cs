@@ -12,7 +12,7 @@ namespace HandballIntegration.Services
         {
             _http = new HttpClient
             {
-                BaseAddress = new Uri("http://localhost:7178/")
+                BaseAddress = new Uri("http://89.168.39.146:5000")
             };
         }
 

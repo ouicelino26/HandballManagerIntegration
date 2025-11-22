@@ -2,33 +2,74 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.modernwpf.com/2019"
+        ui:WindowHelper.UseModernWindowStyle="True"
         Title="Handball Manager"
         Width="900" Height="600">
 
     <Grid>
 
+        <!-- Bouton API -->
+        <Button
+            x:Name="ConnectApiButton"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Right"
+            Margin="10"
+            Content="API">
+
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Background" Value="Gray"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
+                            <Setter Property="Background" Value="Green"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsApiConnected}" Value="False">
+                            <Setter Property="Background" Value="Red"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+
+            <Button.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="5"/>
+                </Style>
+            </Button.Resources>
+        </Button>
+
+
+        <!-- Navigation View -->
         <ui:NavigationView
             IsSettingsVisible="False"
             SelectionChanged="NavigationView_SelectionChanged"
-            PaneTitle="Handball Manager">
+            PaneTitle="Handball Manager"
+            IsBackButtonVisible="Collapsed"
+            IsBackEnabled="False"
+            IsTitleBarAutoPaddingEnabled="False"
+            Header=""
+            AlwaysShowHeader="False">
 
             <ui:NavigationView.MenuItems>
 
-                <ui:NavigationViewItem Content="Dashboard"
-                                       Tag="dashboard"
-                                       Icon="Home" />
+                <ui:NavigationViewItem 
+                    Content="Dashboard"
+                    Tag="dashboard"
+                    Icon="Home" />
 
-                <ui:NavigationViewItem Content="Intégration"
-                                       Tag="integration"
-                                       Icon="Upload" />
+                <ui:NavigationViewItem 
+                    Content="Intégration"
+                    Tag="integration"
+                    Icon="Upload" />
 
-                <ui:NavigationViewItem Content="Joueuses"
-                                       Tag="players"
-                                       Icon="People" />
+                <ui:NavigationViewItem 
+                    Content="Joueuses"
+                    Tag="players"
+                    Icon="People" />
 
             </ui:NavigationView.MenuItems>
 
-            <!-- Page affichée -->
+            <!-- Contenu de la page -->
             <Frame x:Name="ContentFrame" />
 
         </ui:NavigationView>

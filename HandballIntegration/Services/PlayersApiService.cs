@@ -31,7 +31,7 @@ namespace HandballIntegration.Services
                 new AuthenticationHeaderValue("Bearer", _auth.AccessToken);
 
             
-            var response = await _http.GetAsync($"{_settings.BaseUrl}/api/Players");
+            var response = await _http.GetAsync($"{_settings.BaseUrl}api/Players");
 
             if (!response.IsSuccessStatusCode)
                 return null;

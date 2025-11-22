@@ -1,8 +1,10 @@
 ﻿using HandballIntegration.Services;
+using HandballIntegration.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using ModernWpf.Controls;
 using System;
 using System.Windows;
+
 
 namespace HandballIntegration
 {
@@ -13,9 +15,9 @@ namespace HandballIntegration
         public MainWindow()
         {
             InitializeComponent();
-
+           
             _apiService = App.Services.GetRequiredService<ApiService>();
-
+            DataContext = new MainViewModel();
             Loaded += MainWindow_Loaded;
         }
 
@@ -44,10 +46,11 @@ namespace HandballIntegration
         {
             bool success = await _apiService.TestConnectionAsync();
 
-            MessageBox.Show(
-                success ? "Connexion API OK — Token récupéré !" : "Connexion API impossible",
-                success ? "Succès" : "Erreur"
-            );
+            
+            var vm = DataContext as MainViewModel;
+            vm.IsApiConnected = success;
+
+            
         }
     }
 }

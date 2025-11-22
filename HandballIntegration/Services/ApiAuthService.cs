@@ -34,7 +34,7 @@ namespace HandballIntegration.Services
                 clientSecret = _settings.ClientSecret
             };
 
-            var response = await _httpClient.PostAsJsonAsync($"{_settings.BaseUrl}/auth/token", credentials);
+            var response = await _httpClient.PostAsJsonAsync($"{_settings.BaseUrl}auth/token", credentials);
 
             if (!response.IsSuccessStatusCode)
                 return false;
