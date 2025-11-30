@@ -133,8 +133,93 @@
                 </DataGridTemplateColumn>
 
             </DataGrid.Columns>
+            
         </DataGrid>
 
     </Grid>
+    <Page.Resources>
+        <ui:ContentDialog x:Key="EditPlayerDialog"
+                  Title="Modifier la joueuse"
+                  PrimaryButtonText="Enregistrer"
+                  CloseButtonText="Annuler"
+                  DefaultButton="Primary"
+                  Width="550">
+
+            <Grid Margin="20">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- NOM -->
+                <TextBlock Text="Nom :" 
+                   VerticalAlignment="Center" 
+                   Margin="0 8"
+                   Grid.Row="0" Grid.Column="0"/>
+                <TextBox Text="{Binding FullName}"
+                 Height="32"
+                 Margin="0 8"
+                 Grid.Row="0" Grid.Column="1"/>
+
+                <!-- AGE -->
+                <TextBlock Text="Âge :" 
+                   VerticalAlignment="Center"
+                   Margin="0 8"
+                   Grid.Row="1" Grid.Column="0"/>
+                <TextBox Text="{Binding Age}"
+                 Height="32"
+                 Margin="0 8"
+                 Grid.Row="1" Grid.Column="1"/>
+
+                <!-- POSTE -->
+                <TextBlock Text="Poste :" 
+                   VerticalAlignment="Center"
+                   Margin="0 8"
+                   Grid.Row="2" Grid.Column="0"/>
+                <ListBox ItemsSource="{Binding AvailablePositions}"
+                 SelectedItem="{Binding PositionName}"
+                 Height="60"
+                 Margin="0 8"
+                 Grid.Row="2" Grid.Column="1"/>
+
+                <!-- EQUIPE -->
+                <TextBlock Text="Équipe :" 
+                   VerticalAlignment="Center"
+                   Margin="0 8"
+                   Grid.Row="3" Grid.Column="0"/>
+                <ListBox ItemsSource="{Binding AvailableTeams}"
+                 SelectedItem="{Binding TeamName}"
+                 Height="60"
+                 Margin="0 8"
+                 Grid.Row="3" Grid.Column="1"/>
+
+                <!-- NATIONALITE -->
+                <TextBlock Text="Nationalité :" 
+                   VerticalAlignment="Center"
+                   Margin="0 8"
+                   Grid.Row="4" Grid.Column="0"/>
+                <ListBox ItemsSource="{Binding AvailableCountries}"
+                 SelectedItem="{Binding CountryName}"
+                 Height="60"
+                 Margin="0 8"
+                 Grid.Row="4" Grid.Column="1"/>
+
+            </Grid>
+
+        </ui:ContentDialog>
+
+
+    </Page.Resources>
+
 
 </Page>
+    

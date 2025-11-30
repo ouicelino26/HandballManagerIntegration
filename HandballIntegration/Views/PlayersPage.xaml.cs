@@ -1,6 +1,8 @@
-﻿using HandballManagerCore.DTO;
-using HandballIntegration.Services;
+﻿using HandballIntegration.Services;
+using HandballManagerCore.DTO;
+using HandballManagerCore.Models;
 using Microsoft.Extensions.DependencyInjection;
+using ModernWpf.Controls;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -8,7 +10,7 @@ using System.Windows.Controls;
 
 namespace HandballIntegration.Views
 {
-    public partial class PlayersPage : Page
+    public partial class PlayersPage : System.Windows.Controls.Page
     {
         private readonly PlayersApiService _playersService;
         private List<PlayerDto> _allPlayers;
@@ -44,11 +46,30 @@ namespace HandballIntegration.Views
         }
 
         // ACTIONS
-        private void EditPlayer_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.DataContext is PlayerDto player)
-                MessageBox.Show($"Modifier la joueuse : {player.FullName}");
-        }
+     private async void EditPlayer_Click(object sender, RoutedEventArgs e)
+{
+ 
+    var player = (sender as FrameworkElement)?.DataContext as PlayerDto;
+    if (player == null) return;
+
+  
+    var dialog = (ContentDialog)this.Resources["EditPlayerDialog"];
+
+  dialog.DataContext = player;
+
+    var result = await dialog.ShowAsync();
+
+       if (result == ContentDialogResult.Primary)
+    {
+               MessageBox.Show($"Modifications enregistrées pour : {player.FullName}");
+    }
+    else
+    {
+        
+        MessageBox.Show("Modification annulée");
+    }
+}
+
 
         private void DeletePlayer_Click(object sender, RoutedEventArgs e)
         {
