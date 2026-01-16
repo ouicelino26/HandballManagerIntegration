@@ -111,6 +111,7 @@
                                             Width="80"
                                             Height="30"
                                             Background="#3D7DFF"
+                                            Click="Integration_Click"
                                             Foreground="White"
                                             Command="{Binding DataContext.IntegrateCommand,
                                                               RelativeSource={RelativeSource AncestorType=Page}}"

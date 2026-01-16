@@ -66,11 +66,15 @@
                     Content="Joueuses"
                     Tag="players"
                     Icon="People" />
+                <ui:NavigationViewItem 
+                    Content="Pdf"
+                    Tag="Pdf"
+                    Icon="Page" />
 
             </ui:NavigationView.MenuItems>
 
             <!-- Contenu de la page -->
-            <Frame x:Name="ContentFrame" Background="#99D689" />
+            <Frame x:Name="ContentFrame" Background="#ACD8C9" />
         </ui:NavigationView>
 
     </Grid>

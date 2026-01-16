@@ -38,6 +38,10 @@ namespace HandballIntegration
                     case "players":
                         ContentFrame.Navigate(new Views.PlayersPage());
                         break;
+                    case "Pdf":
+                        ContentFrame.Navigate(new Views.SendPdf());
+                        break;
+
                 }
             }
         }

@@ -1,13 +1,13 @@
 ﻿using HandballManagerCore.DTO;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using System.Windows;
 using System.Windows.Controls;
-using HandballManagerCore.DTO;
 
 namespace HandballIntegration.Views
 {
@@ -18,6 +18,7 @@ namespace HandballIntegration.Views
         public IntegrationPage()
         {
             InitializeComponent();
+            ViewModel = App.Services.GetRequiredService<IntegrationViewModel>();
             DataContext = ViewModel;
         }
 
@@ -34,17 +35,13 @@ namespace HandballIntegration.Views
                 ViewModel.LoadFiles(dialog.FileName);
             }
         }
+
+        private async void Integration_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is MatchToIntegrate file)
+            {
+                await ViewModel.IntegrateFileAsync(file);
+            }
+        }
     }
-
-
-
-public class MatchToIntegrate
-    {
-        public string FileName { get; set; }
-        public string FullPath { get; set; }
-
-       
-        public MatchDto MatchInfo { get; set; } = new MatchDto();
-    }
-
 }

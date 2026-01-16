@@ -13,6 +13,7 @@ namespace HanballManagerMaui.Services.CsvMappings
         public MatchFileMap() { 
         Map(m=> m.PlayerId).Name("Nom Prénom");
         Map(m => m.Time).Name("Temps");
+        Map(m => m.Number).Name("N° maillot");
         Map(m => m.TeamScore1).Name("Score A");
         Map(m => m.TeamScore2).Name("Score B");
         Map(m => m.EventId).Name("Evenement");

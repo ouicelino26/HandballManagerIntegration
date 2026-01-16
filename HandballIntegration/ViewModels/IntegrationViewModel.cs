@@ -1,9 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HanballManagerMaui.Services;
+using HandballIntegration;
 using HandballIntegration.Converters;
+using HandballIntegration.Data;
+using HandballIntegration.Services;
 using HandballManagerCore.DTO;
 using HandballManagerCore.Models;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -17,11 +21,31 @@ public partial class IntegrationViewModel : ObservableObject
     private readonly XlsxToCsvConverter _converter = new();
     private readonly MatchFileImportService _importService = new();
     private readonly HttpClient _http;
-    public IntegrationViewModel(HttpClient httpClient)
+    private readonly ApiService _apiService;
+    private readonly ApiSettings _settings;
+    public IntegrationViewModel()
     {
-        _http = httpClient;         
+
+        _apiService = App.Services.GetRequiredService<ApiService>();
+        _http = App.Services.GetRequiredService<HttpClient>();
+
+        var options = App.Services.GetRequiredService<
+            Microsoft.Extensions.Options.IOptions<ApiSettings>>();
+
+        _settings = options.Value;
         IntegrateCommand = new AsyncRelayCommand<MatchToIntegrate>(IntegrateFileAsync);
+        if (_settings == null)
+        {
+            Console.WriteLine("vide");
+
+        }
+        else if (string.IsNullOrWhiteSpace(_settings.BaseUrl))
+        {
+            Console.WriteLine("vide");
+        }
     }
+
+
 
     [ObservableProperty]
     private string selectedFolder;
@@ -31,39 +55,39 @@ public partial class IntegrationViewModel : ObservableObject
 
     public IRelayCommand<MatchToIntegrate> IntegrateCommand { get; }
 
-    public IntegrationViewModel()
-    {
-        IntegrateCommand = new AsyncRelayCommand<MatchToIntegrate>(IntegrateFileAsync);
-    }
+  
 
-
-    // -------------------------------------------------------
-    // Charger les fichiers XLSX
-    // -------------------------------------------------------
     public void LoadFiles(string folderPath)
     {
-        SelectedFolder = folderPath;
-        Files.Clear();
-
-        var filePaths = Directory.GetFiles(folderPath, "*.xlsx", SearchOption.AllDirectories);
-
-        foreach (var file in filePaths)
+        try
         {
-            string fileName = Path.GetFileName(file);
+            SelectedFolder = folderPath;
+            Files.Clear();
 
-            if (fileName.StartsWith("Table historique des actions du match",
-                                    StringComparison.OrdinalIgnoreCase))
+            var filePaths = Directory.GetFiles(folderPath, "*.xlsx", SearchOption.AllDirectories);
+
+            foreach (var file in filePaths)
             {
-                Files.Add(new MatchToIntegrate
+                string fileName = Path.GetFileName(file);
+
+                if (fileName.StartsWith("Table historique des actions du match",
+                                        StringComparison.OrdinalIgnoreCase))
                 {
-                    FileName = fileName,
-                    FullPath = file,
-                    MatchInfo = new MatchDto
+                    Files.Add(new MatchToIntegrate
                     {
-                        Date = DateTime.Today
-                    }
-                });
+                        FileName = fileName,
+                        FullPath = file,
+                        MatchInfo = new MatchDto
+                        {
+                            Date = DateTime.Today
+                        }
+                    });
+                }
             }
+        }
+        catch
+        {
+
         }
     }
 
@@ -79,16 +103,16 @@ public partial class IntegrationViewModel : ObservableObject
             file.Status = IntegrationStatus.Converting;
             file.StatusMessage = "Conversion XLSX...";
 
-            // 1️⃣ Conversion XLSX → CSV
+            // Conversion XLSX → CSV
             string csvPath = _converter.ConvertXlsxToCsv(file.FullPath);
 
-            // 2️⃣ Import CSV
+            // Import CSV
             file.StatusMessage = "Lecture CSV...";
             var rows = _importService.ImportFromCsv(csvPath);
             if (rows.Count == 0)
                 throw new Exception("Le fichier CSV est vide.");
 
-            // 3️⃣ Identifier équipes
+            
             file.StatusMessage = "Recherche équipes...";
             var teamNames = rows.Select(r => (r.TeamId ?? "").Trim())
                                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -105,7 +129,7 @@ public partial class IntegrationViewModel : ObservableObject
             if (team1Id == null || team2Id == null)
                 throw new Exception("Équipe introuvable.");
 
-            // 4️⃣ Créer match
+            
             file.Status = IntegrationStatus.Integrating;
             file.StatusMessage = "Création du match...";
 
@@ -122,12 +146,12 @@ public partial class IntegrationViewModel : ObservableObject
                 Year = file.MatchInfo.Date.Year
             };
 
-            var respMatch = await _http.PostAsJsonAsync("api/Matches", newMatch);
+            var respMatch = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/Matches", newMatch);
             respMatch.EnsureSuccessStatusCode();
 
             var createdMatch = await respMatch.Content.ReadFromJsonAsync<Match>();
 
-            // 5️⃣ Enregistrer événements
+            
             file.StatusMessage = "Importation événements...";
 
             foreach (var dto in rows)
@@ -137,9 +161,11 @@ public partial class IntegrationViewModel : ObservableObject
                 int? eventId = await ApiResolveId("api/Events/byname/", dto.EventId);
                 int? attackId = await ApiResolveId("api/Attacks/byname/", dto.AttackId);
                 int? defenseId = await ApiResolveId("api/Defenses/byname/", dto.DefenseId);
-
+                
                 var matchEvent = new MatchEvent
                 {
+
+                   
                     MatchId = createdMatch.Id,
                     TeamId = teamId ?? 0,
                     PlayerId = playerId ?? 0,
@@ -150,14 +176,18 @@ public partial class IntegrationViewModel : ObservableObject
                     TeamScore1 = TryParseInt(dto.TeamScore1),
                     TeamScore2 = TryParseInt(dto.TeamScore2),
                     ShootShade = dto.ShootShade,
+
                     Trigger = dto.Trigger
                 };
-
-                var resp = await _http.PostAsJsonAsync("api/MatchEvents", matchEvent);
+                if (dto.Number >= 100)
+                {
+                    continue; // on integre pas l'évenement 
+                }
+                var resp = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/MatchEvents", matchEvent);
                 resp.EnsureSuccessStatusCode();
             }
 
-            // 6️⃣ OK
+            //  OK
             file.IsBusy = false;
             file.Status = IntegrationStatus.Success;
             file.StatusMessage = "Fichier intégré ✔";
@@ -174,15 +204,19 @@ public partial class IntegrationViewModel : ObservableObject
     private async Task<int?> ApiResolveTeamId(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        var resp = await _http.GetAsync($"api/Teams/byname/{Uri.EscapeDataString(name)}");
+        var resp = await _http.GetAsync($"{_settings.BaseUrl}auth/byname/{Uri.EscapeDataString(name)}");
+        
         if (!resp.IsSuccessStatusCode) return null;
         return (await resp.Content.ReadFromJsonAsync<Team>())?.Id;
     }
 
     private async Task<int?> ApiResolvePlayerId(string? name)
     {
+        
         if (string.IsNullOrWhiteSpace(name)) return null;
-        var resp = await _http.GetAsync($"api/Players/byfullname/{Uri.EscapeDataString(name)}");
+
+        var resp = await _http.GetAsync($"{_settings.BaseUrl}api/Players/byfullname/{Uri.EscapeDataString(name)}");
+
         if (!resp.IsSuccessStatusCode) return null;
         return (await resp.Content.ReadFromJsonAsync<Player>())?.Id;
     }

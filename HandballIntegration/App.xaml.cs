@@ -24,11 +24,16 @@ namespace HandballIntegration
                 .ConfigureServices((context, services) =>
                 {
                     services.Configure<ApiSettings>(context.Configuration.GetSection("ApiSettings"));
+                    services.AddHttpClient<ApiService>(client =>
+                    {
+                        client.BaseAddress = new Uri(context.Configuration["ApiSettings:BaseUrl"]);
+                    });
 
                     services.AddHttpClient();
                     services.AddSingleton<IApiAuthService, ApiAuthService>();
                     services.AddSingleton<ApiService>();
                     services.AddSingleton<PlayersApiService>();
+                    services.AddSingleton<IntegrationViewModel>();
                 })
                 .Build();
         }
