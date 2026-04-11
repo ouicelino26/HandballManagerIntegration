@@ -1,5 +1,6 @@
-﻿using HandballIntegration.Data;
+using HandballIntegration.Data;
 using HandballIntegration.Services;
+using HandballIntegration.Views;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,6 +34,7 @@ namespace HandballIntegration
                     services.AddSingleton<IApiAuthService, ApiAuthService>();
                     services.AddSingleton<ApiService>();
                     services.AddSingleton<PlayersApiService>();
+                    services.AddSingleton<UsersApiService>();
                     services.AddSingleton<IntegrationViewModel>();
                 })
                 .Build();
@@ -40,8 +42,34 @@ namespace HandballIntegration
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-            await AppHost.StartAsync();
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
             base.OnStartup(e);
+            await AppHost.StartAsync();
+
+            var authService = Services.GetRequiredService<IApiAuthService>();
+            authService.Logout();
+
+            var loginWindow = new LoginWindow();
+            var loginResult = loginWindow.ShowDialog();
+
+            if (loginResult != true)
+            {
+                Shutdown();
+                return;
+            }
+
+            var mainWindow = new MainWindow();
+            MainWindow = mainWindow;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+            mainWindow.Show();
+        }
+
+        protected override async void OnExit(ExitEventArgs e)
+        {
+            await AppHost.StopAsync();
+            AppHost.Dispose();
+            base.OnExit(e);
         }
     }
 }

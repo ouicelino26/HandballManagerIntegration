@@ -1,12 +1,17 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 
 namespace HandballIntegration.Views
 {
     public partial class SendPdf : Page
     {
+        private static readonly Brush BlockBorderBrush = new SolidColorBrush(Color.FromRgb(46, 125, 107));
+        private static readonly Brush BlockSelectedBrush = new SolidColorBrush(Color.FromRgb(197, 97, 63));
+        private static readonly Brush BlockBackgroundBrush = new SolidColorBrush(Color.FromRgb(250, 248, 244));
+
         private UIElement selectedElement;
         private Point startPoint;
 
@@ -15,23 +20,22 @@ namespace HandballIntegration.Views
             InitializeComponent();
         }
 
-        // ➕ TEXTE
         private void AddText_Click(object sender, RoutedEventArgs e)
         {
             Border block = CreateBlock();
 
-            TextBlock tb = new TextBlock
+            TextBlock textBlock = new TextBlock
             {
-                Text = "Nom de la joueuse",
-                FontSize = 22,
-                FontWeight = FontWeights.Bold
+                Text = "Fiche joueuse",
+                FontSize = 24,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(25, 40, 35))
             };
 
-            block.Child = tb;
-            AddToCanvas(block, 100, 100);
+            block.Child = textBlock;
+            AddToCanvas(block, 96, 92);
         }
 
-        // TABLEAU
         private void AddTable_Click(object sender, RoutedEventArgs e)
         {
             Border block = CreateBlock();
@@ -39,13 +43,17 @@ namespace HandballIntegration.Views
             DataGrid grid = new DataGrid
             {
                 AutoGenerateColumns = true,
-                Height = 150,
-                Width = 400,
+                Height = 170,
+                Width = 420,
                 CanUserAddRows = false,
-                IsReadOnly = true
+                IsReadOnly = true,
+                HeadersVisibility = DataGridHeadersVisibility.Column,
+                GridLinesVisibility = DataGridGridLinesVisibility.None,
+                Background = Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(226, 216, 205)),
+                BorderThickness = new Thickness(1)
             };
 
-            // fake data (plus tard ton API)
             grid.ItemsSource = new[]
             {
                 new { Match = "M1", Buts = 5, Fautes = 1 },
@@ -53,18 +61,25 @@ namespace HandballIntegration.Views
             };
 
             block.Child = grid;
-            AddToCanvas(block, 100, 200);
+            AddToCanvas(block, 96, 190);
         }
 
-        // CRÉATION BLOC
         private Border CreateBlock()
         {
             Border border = new Border
             {
-                BorderBrush = Brushes.DodgerBlue,
-                BorderThickness = new Thickness(1),
-                Background = Brushes.Transparent,
-                Padding = new Thickness(5)
+                BorderBrush = BlockBorderBrush,
+                BorderThickness = new Thickness(1.5),
+                Background = BlockBackgroundBrush,
+                Padding = new Thickness(14),
+                CornerRadius = new CornerRadius(16),
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 14,
+                    Color = Color.FromRgb(32, 58, 51),
+                    Opacity = 0.08,
+                    ShadowDepth = 0
+                }
             };
 
             border.MouseLeftButtonDown += Block_MouseDown;
@@ -81,38 +96,54 @@ namespace HandballIntegration.Views
             EditorCanvas.Children.Add(element);
         }
 
-        // DRAG SYSTEM
         private void Block_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            selectedElement = sender as UIElement;
+            if (sender is not Border border)
+            {
+                return;
+            }
+
+            selectedElement = border;
             startPoint = e.GetPosition(EditorCanvas);
-            selectedElement.CaptureMouse();
+            border.BorderBrush = BlockSelectedBrush;
+            border.CaptureMouse();
         }
 
         private void Block_MouseMove(object sender, MouseEventArgs e)
         {
-            if (selectedElement == null) return;
+            if (selectedElement == null)
+            {
+                return;
+            }
 
-            Point pos = e.GetPosition(EditorCanvas);
-            double offsetX = pos.X - startPoint.X;
-            double offsetY = pos.Y - startPoint.Y;
+            Point position = e.GetPosition(EditorCanvas);
+            double offsetX = position.X - startPoint.X;
+            double offsetY = position.Y - startPoint.Y;
 
             Canvas.SetLeft(selectedElement, Canvas.GetLeft(selectedElement) + offsetX);
             Canvas.SetTop(selectedElement, Canvas.GetTop(selectedElement) + offsetY);
 
-            startPoint = pos;
+            startPoint = position;
         }
 
         private void Block_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            selectedElement?.ReleaseMouseCapture();
+            if (selectedElement is Border border)
+            {
+                border.ReleaseMouseCapture();
+                border.BorderBrush = BlockBorderBrush;
+            }
+
             selectedElement = null;
         }
 
-        // EXPORT (on branchera QuestPDF ensuite)
         private void ExportPdf_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Ici on générera le PDF depuis le layout 😉");
+            MessageBox.Show(
+                "Le gabarit PDF sera généré depuis cette mise en page dès que l’export QuestPDF sera branché.",
+                "Export PDF",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }

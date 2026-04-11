@@ -1,21 +1,113 @@
-﻿<Page x:Class="HandballIntegration.Views.DashboardPage"
+<Page x:Class="HandballIntegration.Views.DashboardPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Margin="20">
+    <Grid Margin="22">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Dernières données enregistrées"
-                   FontSize="28"
-                   Margin="0 0 0 20"/>
+        <Border Grid.Row="0" Style="{StaticResource SurfaceCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-        <DataGrid Grid.Row="1"
-                  x:Name="RecentDataGrid"
-                  AutoGenerateColumns="True"
-                  IsReadOnly="True"/>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleStyle}"
+                               Text="Tableau de bord"/>
+                    <TextBlock x:Name="DashboardHintText"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource BodyTextStyle}"
+                               Text="Controle rapide de l'API et du referentiel."/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right">
+                    <Border x:Name="ApiStatusBadge"
+                            Padding="12,8"
+                            CornerRadius="14"
+                            Background="{StaticResource AccentSoftBrush}">
+                        <TextBlock x:Name="ApiStatusText"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Text="Verification"/>
+                    </Border>
+                    <TextBlock x:Name="SyncMomentText"
+                               Margin="0,8,0,0"
+                               HorizontalAlignment="Right"
+                               Style="{StaticResource BodyTextStyle}"
+                               Text="En attente"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="2" Columns="3">
+            <Border Margin="0,0,8,0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Joueuses"/>
+                    <TextBlock x:Name="PlayersCountText"
+                               Margin="0,6,0,0"
+                               Style="{StaticResource MetricValueTextStyle}"
+                               Text="--"/>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="8,0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Equipes"/>
+                    <TextBlock x:Name="TeamsCountText"
+                               Margin="0,6,0,0"
+                               Style="{StaticResource MetricValueTextStyle}"
+                               Text="--"/>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="8,0,0,0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Pays"/>
+                    <TextBlock x:Name="CountriesCountText"
+                               Margin="0,6,0,0"
+                               Style="{StaticResource MetricValueTextStyle}"
+                               Text="--"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Grid.Row="4" Style="{StaticResource SurfaceCardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Apercu du referentiel"/>
+                    <TextBlock Margin="0,6,0,0"
+                               Style="{StaticResource BodyTextStyle}"
+                               Text="Quelques profils pour verifier d'un coup d'oeil."/>
+                </StackPanel>
+
+                <DataGrid Grid.Row="2"
+                          x:Name="RecentDataGrid"
+                          Style="{StaticResource AppDataGridStyle}"
+                          IsReadOnly="True"
+                          CanUserSortColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Joueuse" Binding="{Binding Joueuse}" Width="2*"/>
+                        <DataGridTextColumn Header="Equipe" Binding="{Binding Equipe}" Width="1.5*"/>
+                        <DataGridTextColumn Header="Poste" Binding="{Binding Poste}" Width="1.2*"/>
+                        <DataGridTextColumn Header="Pays" Binding="{Binding Pays}" Width="1.2*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
     </Grid>
-
 </Page>

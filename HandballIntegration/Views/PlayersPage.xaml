@@ -1,225 +1,220 @@
-﻿<Page x:Class="HandballIntegration.Views.PlayersPage"
+<Page x:Class="HandballIntegration.Views.PlayersPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.modernwpf.com/2019">
 
-    <Grid Margin="20">
-
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
-        <!-- TITRE -->
-        <TextBlock Text="Liste des joueuses"
-                   FontSize="32"
-                   FontWeight="Bold"
-                   Margin="0 0 0 10"
-                   Foreground="#222"/>
-
-        <!-- BARRE DE RECHERCHE -->
-        <DockPanel Grid.Row="1" Margin="0 0 0 15">
-            <TextBox Style="{StaticResource WatermarkTextBox}"
-          Tag="Rechercher..."
-          x:Name="SearchBox"
-          Width="300"
-          Height="32"
-          TextChanged="SearchBox_TextChanged"/>
-
-
-
-            <Button Content="🔍"
-                    Width="40" Height="38"
-                    ui:ControlHelper.CornerRadius="8"
-                    Background="#3D7DFF"
-                    Foreground="White"/>
-        </DockPanel>
-
-        <!-- TABLEAU -->
-        <DataGrid x:Name="PlayersGrid"
-                  Grid.Row="2"
-                  AutoGenerateColumns="False"
-                  HeadersVisibility="Column"
-                  IsReadOnly="True"
-                  CanUserSortColumns="True"
-                  RowHeight="40"
-                  ColumnHeaderHeight="45"
-                  BorderThickness="0"
-                  AlternatingRowBackground="#F6F6F6"
-                  RowBackground="White"
-                  FontSize="14"
-                  GridLinesVisibility="None"
-                  ui:ControlHelper.CornerRadius="8"
-                  ScrollViewer.VerticalScrollBarVisibility="Auto"
-                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
-
-            <!-- EN-TÊTES MODERNES -->
-            <DataGrid.ColumnHeaderStyle>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="FontSize" Value="14"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Background" Value="#ECECEC"/>
-                    <Setter Property="Foreground" Value="#333"/>
-                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    <Setter Property="BorderBrush" Value="#D0D0D0"/>
-                </Style>
-            </DataGrid.ColumnHeaderStyle>
-
-            <!-- CELLULES -->
-            <DataGrid.CellStyle>
-                <Style TargetType="DataGridCell">
-                    <Setter Property="Padding" Value="10 0"/>
-                    <Setter Property="BorderThickness" Value="0"/>
-                    <Setter Property="Foreground" Value="#333"/>
-                    <Setter Property="FontSize" Value="14"/>
-                </Style>
-            </DataGrid.CellStyle>
-
-            <!-- COLONNES -->
-            <DataGrid.Columns>
-
-                <DataGridTextColumn Header="Nom complet"
-                                    Binding="{Binding FullName}"
-                                    SortMemberPath="FullName"
-                                    Width="*"/>
-
-                <DataGridTextColumn Header="Âge"
-                                    Binding="{Binding Age}"
-                                    SortMemberPath="Age"
-                                    Width="80"/>
-
-                <DataGridTextColumn Header="Équipe"
-                                    Binding="{Binding TeamName}"
-                                    SortMemberPath="TeamName"
-                                    Width="150"/>
-
-                <DataGridTextColumn Header="Poste"
-                                    Binding="{Binding PositionName}"
-                                    SortMemberPath="PositionName"
-                                    Width="150"/>
-
-                <DataGridTextColumn Header="Pays"
-                                    Binding="{Binding CountryName}"
-                                    SortMemberPath="CountryName"
-                                    Width="150"/>
-
-                <!-- ACTIONS -->
-                <DataGridTemplateColumn Header="Actions" Width="120">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-
-                                <Button Width="35" Height="30"
-                                        Margin="0 0 8 0"
-                                        Background="#FFC107"
-                                        ui:ControlHelper.CornerRadius="6"
-                                        Click="EditPlayer_Click">
-                                    <TextBlock Text="✏️"/>
-                                </Button>
-
-                                <Button Width="35" Height="30"
-                                        Background="#D32F2F"
-                                        Foreground="White"
-                                        ui:ControlHelper.CornerRadius="6"
-                                        Click="DeletePlayer_Click">
-                                    <TextBlock Text="🗑️"/>
-                                </Button>
-
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-            </DataGrid.Columns>
-            
-        </DataGrid>
-
-    </Grid>
     <Page.Resources>
+        <Style x:Key="InlineEditButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="88"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="InlineDeleteButtonStyle" TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="92"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="DialogLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
         <ui:ContentDialog x:Key="EditPlayerDialog"
-                  Title="Modifier la joueuse"
-                  PrimaryButtonText="Enregistrer"
-                  CloseButtonText="Annuler"
-                  DefaultButton="Primary"
-                  Width="550">
-
-            <Grid Margin="20">
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="170"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
+                          Title="Modifier la joueuse"
+                          PrimaryButtonText="Enregistrer"
+                          CloseButtonText="Fermer"
+                          DefaultButton="Primary"
+                          Width="620">
+            <Grid Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="14"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- NOM -->
-                <TextBlock Text="Nom :" 
-                   VerticalAlignment="Center" 
-                   Margin="0 8"
-                   Grid.Row="0" Grid.Column="0"/>
-                <TextBox Text="{Binding FullName}"
-                 Height="32"
-                 Margin="0 8"
-                 Grid.Row="0" Grid.Column="1"/>
+                <TextBlock Grid.Row="0"
+                           FontSize="13"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           Text="Edition locale en attendant la route de mise a jour API."/>
 
-                <!-- AGE -->
-                <TextBlock Text="Âge :" 
-                   VerticalAlignment="Center"
-                   Margin="0 8"
-                   Grid.Row="1" Grid.Column="0"/>
-                <TextBox Text="{Binding Age}"
-                 Height="32"
-                 Margin="0 8"
-                 Grid.Row="1" Grid.Column="1"/>
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <!-- POSTE -->
-                <TextBlock Text="Poste :" 
-                   VerticalAlignment="Center"
-                   Margin="0 8"
-                   Grid.Row="2" Grid.Column="0"/>
-                <ListBox ItemsSource="{Binding AvailablePositions}"
-                 SelectedItem="{Binding PositionName}"
-                 Height="60"
-                 Margin="0 8"
-                 Grid.Row="2" Grid.Column="1"/>
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,12">
+                        <TextBlock Text="Nom complet" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding FullName}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
 
-                <!-- EQUIPE -->
-                <TextBlock Text="Équipe :" 
-                   VerticalAlignment="Center"
-                   Margin="0 8"
-                   Grid.Row="3" Grid.Column="0"/>
-                <ListBox ItemsSource="{Binding AvailableTeams}"
-                 SelectedItem="{Binding TeamName}"
-                 Height="60"
-                 Margin="0 8"
-                 Grid.Row="3" Grid.Column="1"/>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,12">
+                        <TextBlock Text="Age" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding Age}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
 
-                <!-- NATIONALITE -->
-                <TextBlock Text="Nationalité :" 
-                   VerticalAlignment="Center"
-                   Margin="0 8"
-                   Grid.Row="4" Grid.Column="0"/>
-                <ListBox ItemsSource="{Binding AvailableCountries}"
-                 SelectedItem="{Binding CountryName}"
-                 Height="60"
-                 Margin="0 8"
-                 Grid.Row="4" Grid.Column="1"/>
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,12">
+                        <TextBlock Text="Equipe" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding TeamName}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
 
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,12">
+                        <TextBlock Text="Poste" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding PositionName}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2">
+                        <TextBlock Text="Nationalite" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding CountryName}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
-
         </ui:ContentDialog>
-
-
     </Page.Resources>
 
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
+        <Border Grid.Row="0" Style="{StaticResource SurfaceCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Joueuses"/>
+                    <TextBlock Margin="0,6,0,0"
+                               Style="{StaticResource BodyTextStyle}"
+                               Text="Recherche rapide et actions directes."/>
+                    <TextBox x:Name="SearchBox"
+                             Margin="0,14,0,0"
+                             Width="360"
+                             Style="{StaticResource WatermarkTextBox}"
+                             Tag="Rechercher une joueuse, une equipe, un poste"
+                             TextChanged="SearchBox_TextChanged"/>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Padding="14,10"
+                        CornerRadius="16"
+                        Background="{StaticResource AccentAltSoftBrush}"
+                        VerticalAlignment="Top">
+                    <TextBlock x:Name="ResultsSummaryText"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentAltDarkBrush}"
+                               Text="Chargement"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="2" Columns="3">
+            <Border Margin="0,0,8,0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Profils"/>
+                    <TextBlock x:Name="PlayersCountText"
+                               Margin="0,6,0,0"
+                               Style="{StaticResource MetricValueTextStyle}"
+                               Text="--"/>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="8,0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Resultats"/>
+                    <TextBlock x:Name="ResultsCountText"
+                               Margin="0,6,0,0"
+                               Style="{StaticResource MetricValueTextStyle}"
+                               Text="--"/>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="8,0,0,0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Equipes"/>
+                    <TextBlock x:Name="TeamsCountText"
+                               Margin="0,6,0,0"
+                               Style="{StaticResource MetricValueTextStyle}"
+                               Text="--"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Grid.Row="4" Style="{StaticResource SurfaceCardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Liste"/>
+                    <TextBlock Margin="0,6,0,0"
+                               Style="{StaticResource BodyTextStyle}"
+                               Text="Edition et suppression directement dans le tableau."/>
+                </StackPanel>
+
+                <DataGrid Grid.Row="2"
+                          x:Name="PlayersGrid"
+                          Style="{StaticResource AppDataGridStyle}"
+                          IsReadOnly="True"
+                          CanUserSortColumns="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Nom complet"
+                                            Binding="{Binding FullName}"
+                                            SortMemberPath="FullName"
+                                            Width="2.2*"/>
+                        <DataGridTextColumn Header="Age"
+                                            Binding="{Binding Age}"
+                                            SortMemberPath="Age"
+                                            Width="0.7*"/>
+                        <DataGridTextColumn Header="Equipe"
+                                            Binding="{Binding TeamName}"
+                                            SortMemberPath="TeamName"
+                                            Width="1.5*"/>
+                        <DataGridTextColumn Header="Poste"
+                                            Binding="{Binding PositionName}"
+                                            SortMemberPath="PositionName"
+                                            Width="1.2*"/>
+                        <DataGridTextColumn Header="Pays"
+                                            Binding="{Binding CountryName}"
+                                            SortMemberPath="CountryName"
+                                            Width="1.2*"/>
+                        <DataGridTemplateColumn Header="Actions" Width="1.6*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Editer"
+                                                Margin="0,0,8,0"
+                                                Style="{StaticResource InlineEditButtonStyle}"
+                                                Click="EditPlayer_Click"/>
+                                        <Button Content="Supprimer"
+                                                Style="{StaticResource InlineDeleteButtonStyle}"
+                                                Click="DeletePlayer_Click"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </Grid>
 </Page>
-    

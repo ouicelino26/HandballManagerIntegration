@@ -1,12 +1,11 @@
-﻿using Microsoft.Extensions.Options;
+using HandballIntegration.Data;
+using Microsoft.Extensions.Options;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
-using HandballIntegration.Data;
-using System.Net.Http.Json;
-    
 
 namespace HandballIntegration.Services
 {
@@ -15,7 +14,10 @@ namespace HandballIntegration.Services
         private readonly HttpClient _httpClient;
         private readonly ApiSettings _settings;
 
-        public string AccessToken { get; private set; }
+        public string? AccessToken { get; private set; }
+        public string? Username { get; private set; }
+        public string? Role { get; private set; }
+        public bool IsAdmin => string.Equals(Role, "Admin", StringComparison.OrdinalIgnoreCase);
 
         public ApiAuthService(HttpClient httpClient, IOptions<ApiSettings> options)
         {
@@ -23,31 +25,109 @@ namespace HandballIntegration.Services
             _settings = options.Value;
         }
 
-        public async Task<bool> AuthenticateAsync()
+        public Task<bool> AuthenticateAsync()
         {
-            if (!string.IsNullOrEmpty(AccessToken))
-                return true;
+            return Task.FromResult(!string.IsNullOrWhiteSpace(AccessToken) && IsAdmin);
+        }
 
-            var credentials = new
+        public async Task<ApiLoginResult> LoginAsync(string username, string password)
+        {
+            Logout();
+
+            var request = new
             {
-                clientId = _settings.ClientId,
-                clientSecret = _settings.ClientSecret
+                Username = username?.Trim(),
+                Password = password
             };
 
-            var response = await _httpClient.PostAsJsonAsync($"{_settings.BaseUrl}auth/token", credentials);
+            HttpResponseMessage response;
+
+            try
+            {
+                response = await _httpClient.PostAsJsonAsync($"{_settings.BaseUrl}auth/login", request);
+            }
+            catch (Exception ex)
+            {
+                return new ApiLoginResult
+                {
+                    Success = false,
+                    Message = $"Connexion impossible a l'API : {ex.Message}"
+                };
+            }
 
             if (!response.IsSuccessStatusCode)
-                return false;
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return new ApiLoginResult
+                {
+                    Success = false,
+                    Message = string.IsNullOrWhiteSpace(error) ? "Identifiants invalides." : error
+                };
+            }
 
             var json = await response.Content.ReadAsStringAsync();
-
-            var result = JsonSerializer.Deserialize<TokenResponse>(json, new JsonSerializerOptions
+            var result = JsonSerializer.Deserialize<LoginResponse>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            AccessToken = result?.accesstoken;
-            return !string.IsNullOrEmpty(AccessToken);
+            if (string.IsNullOrWhiteSpace(result?.accesstoken))
+            {
+                return new ApiLoginResult
+                {
+                    Success = false,
+                    Message = "La reponse de connexion ne contient pas de token."
+                };
+            }
+
+            if (!string.Equals(result.role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ApiLoginResult
+                {
+                    Success = false,
+                    Message = "Acces reserve aux administrateurs.",
+                    Username = result.username,
+                    Role = result.role
+                };
+            }
+
+            AccessToken = result.accesstoken;
+            Username = result.username;
+            Role = result.role;
+
+            return new ApiLoginResult
+            {
+                Success = true,
+                Message = "Connexion etablie.",
+                Username = Username,
+                Role = Role
+            };
+        }
+
+        public void ApplyAuthorizationHeader(HttpClient client)
+        {
+            if (string.IsNullOrWhiteSpace(AccessToken))
+            {
+                client.DefaultRequestHeaders.Authorization = null;
+                return;
+            }
+
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", AccessToken);
+        }
+
+        public void Logout()
+        {
+            AccessToken = null;
+            Username = null;
+            Role = null;
+        }
+
+        private class LoginResponse
+        {
+            public string? accesstoken { get; set; }
+            public string? username { get; set; }
+            public string? role { get; set; }
         }
     }
 }

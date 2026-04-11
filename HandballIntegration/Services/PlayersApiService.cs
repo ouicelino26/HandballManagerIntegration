@@ -1,10 +1,10 @@
-﻿using HandballIntegration.Data;
+using HandballIntegration.Data;
+using HandballManagerCore.DTO;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
-using HandballManagerCore.DTO;
+
 namespace HandballIntegration.Services
 {
     public class PlayersApiService
@@ -22,28 +22,55 @@ namespace HandballIntegration.Services
 
         public async Task<List<PlayerDto>?> GetPlayersAsync()
         {
-            
-            bool ok = await _auth.AuthenticateAsync();
-            if (!ok) return null;
-
-          
-            _http.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _auth.AccessToken);
-
-            
-            var response = await _http.GetAsync($"{_settings.BaseUrl}api/Players");
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            return JsonSerializer.Deserialize<List<PlayerDto>>(json, new JsonSerializerOptions
+            try
             {
-                PropertyNameCaseInsensitive = true
-            });
+                bool ok = await _auth.AuthenticateAsync();
+                if (!ok)
+                {
+                    return null;
+                }
+
+                _auth.ApplyAuthorizationHeader(_http);
+
+                var response = await _http.GetAsync($"{_settings.BaseUrl}api/Players");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+
+                return JsonSerializer.Deserialize<List<PlayerDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<bool> DeletePlayerAsync(int playerId)
+        {
+            try
+            {
+                bool ok = await _auth.AuthenticateAsync();
+                if (!ok)
+                {
+                    return false;
+                }
+
+                _auth.ApplyAuthorizationHeader(_http);
+
+                var response = await _http.DeleteAsync($"{_settings.BaseUrl}api/Players/{playerId}");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
-
-
 }

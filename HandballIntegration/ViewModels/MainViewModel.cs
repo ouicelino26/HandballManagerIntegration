@@ -10,5 +10,11 @@ namespace HandballIntegration.ViewModels
     {
         [ObservableProperty]
         private bool isApiConnected;
+
+        [ObservableProperty]
+        private string currentUsername = string.Empty;
+
+        [ObservableProperty]
+        private string currentRole = string.Empty;
     }
 }
