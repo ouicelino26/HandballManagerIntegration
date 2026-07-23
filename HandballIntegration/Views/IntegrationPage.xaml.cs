@@ -1,11 +1,6 @@
-﻿using HandballManagerCore.DTO;
+using HandballIntegration.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -13,26 +8,42 @@ namespace HandballIntegration.Views
 {
     public partial class IntegrationPage : Page
     {
-        public IntegrationViewModel ViewModel { get; } = new IntegrationViewModel();
+        public IntegrationViewModel ClassicViewModel { get; }
+        public TimeIntegrationViewModel TimeViewModel { get; }
 
         public IntegrationPage()
         {
             InitializeComponent();
-            ViewModel = App.Services.GetRequiredService<IntegrationViewModel>();
-            DataContext = ViewModel;
+            ClassicViewModel = App.Services.GetRequiredService<IntegrationViewModel>();
+            TimeViewModel = App.Services.GetRequiredService<TimeIntegrationViewModel>();
+            DataContext = this;
         }
 
-        private void BrowseFolder_Click(object sender, RoutedEventArgs e)
+        private void BrowseClassicFolder_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new CommonOpenFileDialog
             {
                 IsFolderPicker = true,
-                Title = "Sélectionnez un dossier contenant les fichiers du match"
+                Title = "Selectionnez un dossier contenant les fichiers du match"
             };
 
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                ViewModel.LoadFiles(dialog.FileName);
+                ClassicViewModel.LoadFiles(dialog.FileName);
+            }
+        }
+
+        private void BrowseTimeFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new CommonOpenFileDialog
+            {
+                IsFolderPicker = true,
+                Title = "Selectionnez un dossier contenant les fichiers de temps de jeu"
+            };
+
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                TimeViewModel.LoadFiles(dialog.FileName);
             }
         }
 
@@ -40,7 +51,15 @@ namespace HandballIntegration.Views
         {
             if (sender is FrameworkElement fe && fe.DataContext is MatchToIntegrate file)
             {
-                await ViewModel.IntegrateFileAsync(file);
+                await ClassicViewModel.IntegrateFileAsync(file);
+            }
+        }
+
+        private async void TimeIntegration_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is TimePlayersFileToIntegrate file)
+            {
+                await TimeViewModel.IntegrateFileAsync(file);
             }
         }
     }

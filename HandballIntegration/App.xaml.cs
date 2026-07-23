@@ -1,5 +1,6 @@
 using HandballIntegration.Data;
 using HandballIntegration.Services;
+using HandballIntegration.ViewModels;
 using HandballIntegration.Views;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,6 +37,7 @@ namespace HandballIntegration
                     services.AddSingleton<PlayersApiService>();
                     services.AddSingleton<UsersApiService>();
                     services.AddSingleton<IntegrationViewModel>();
+                    services.AddSingleton<TimeIntegrationViewModel>();
                 })
                 .Build();
         }

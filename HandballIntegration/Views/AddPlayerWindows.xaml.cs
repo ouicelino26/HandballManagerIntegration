@@ -1,12 +1,16 @@
 using HandballIntegration.Data;
 using HandballIntegration.Services;
+using HandballManagerCore.DTO;
 using HandballManagerCore.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using static IntegrationViewModel;
 
@@ -52,15 +56,18 @@ namespace HandballIntegration.Views
                     return;
                 }
 
-                var positions = await _http.GetFromJsonAsync<List<Position>>(
-                    $"{_settings.BaseUrl}api/Positions");
+                PositionComboBox.ItemsSource = await LoadPositionsAsync();
+                NationalityComboBox.ItemsSource = await LoadNationalitiesAsync();
 
-                PositionComboBox.ItemsSource = positions;
+                if (PositionComboBox.Items.Count > 0)
+                {
+                    PositionComboBox.SelectedIndex = 0;
+                }
 
-                var nationalities = await _http.GetFromJsonAsync<List<Nationality>>(
-                    $"{_settings.BaseUrl}api/Nationalities");
-
-                NationalityComboBox.ItemsSource = nationalities;
+                if (NationalityComboBox.Items.Count > 0)
+                {
+                    NationalityComboBox.SelectedIndex = 0;
+                }
             }
             catch (Exception ex)
             {
@@ -89,10 +96,11 @@ namespace HandballIntegration.Views
                 Name = FirstNameTextBox.Text.Trim(),
                 Surname = LastNameTextBox.Text.Trim(),
                 Birthday = BirthDatePicker.SelectedDate,
-                TeamId = (int)TeamComboBox.SelectedValue,
-                PositionId = (int)PositionComboBox.SelectedValue,
-                NationalityId = (int)NationalityComboBox.SelectedValue,
-                Number = int.TryParse(NumberTextBox.Text, out var n) ? n : 0
+                TeamId = GetSelectedId(TeamComboBox),
+                PositionId = GetSelectedId(PositionComboBox),
+                NationalityId = GetSelectedId(NationalityComboBox),
+                Number = int.TryParse(NumberTextBox.Text, out var n) ? n : 0,
+                IsActive = IsActiveCheckBox.IsChecked != false
             };
 
             try
@@ -142,6 +150,56 @@ namespace HandballIntegration.Views
             }
 
             return true;
+        }
+
+        private async Task<List<LookupItemDto>> LoadPositionsAsync()
+        {
+            var lookupPositions = await _http.GetFromJsonAsync<List<LookupItemDto>>(
+                $"{_settings.BaseUrl}api/Lookups/positions");
+
+            if (lookupPositions?.Any() == true)
+            {
+                return lookupPositions;
+            }
+
+            return await _http.GetFromJsonAsync<List<LookupItemDto>>(
+                       $"{_settings.BaseUrl}api/Positions")
+                   ?? new List<LookupItemDto>();
+        }
+
+        private async Task<List<LookupItemDto>> LoadNationalitiesAsync()
+        {
+            var lookupNationalities = await _http.GetFromJsonAsync<List<LookupItemDto>>(
+                $"{_settings.BaseUrl}api/Lookups/nationalities");
+
+            if (lookupNationalities?.Any() == true)
+            {
+                return lookupNationalities;
+            }
+
+            var legacyNationalities = await _http.GetFromJsonAsync<List<Nationality>>(
+                $"{_settings.BaseUrl}api/Nationalities");
+
+            return legacyNationalities?
+                .Select(item => new LookupItemDto
+                {
+                    Id = item.Id,
+                    Name = string.IsNullOrWhiteSpace(item.NationalityF) ? item.Country : item.NationalityF
+                })
+                .ToList()
+                ?? new List<LookupItemDto>();
+        }
+
+        private static int GetSelectedId(ComboBox comboBox)
+        {
+            return comboBox.SelectedValue switch
+            {
+                int value => value,
+                long value => (int)value,
+                short value => value,
+                byte value => value,
+                _ => 0
+            };
         }
     }
 }

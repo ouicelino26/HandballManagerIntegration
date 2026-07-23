@@ -29,9 +29,10 @@ public partial class IntegrationViewModel : ObservableObject
     private readonly MatchFileImportService _importService = new();
     private readonly System.Net.Http.HttpClient _http;
     private readonly ApiService _apiService;
+    private readonly PlayersApiService _playersApiService;
     private readonly ApiSettings _settings;
     private static string Key(string s)
-    => (s ?? "").Trim().ToLower();
+    => NormalizeImportedPlayerName(s).ToLowerInvariant();
     Dictionary<string, string> _playerNameMap = new();
 
     public List<string> JoursDisponibles { get; } =
@@ -39,10 +40,16 @@ public partial class IntegrationViewModel : ObservableObject
               .Select(i => $"J{i}")
               .ToList();
 
+    public List<string> SaisonsDisponibles { get; } =
+        Enumerable.Range(2010, 21)
+                  .Select(BuildSeasonLabel)
+                  .ToList();
+
     public IntegrationViewModel()
     {
 
         _apiService = App.Services.GetRequiredService<ApiService>();
+        _playersApiService = App.Services.GetRequiredService<PlayersApiService>();
         _http = App.Services.GetRequiredService<System.Net.Http.HttpClient>();
 
         var options = App.Services.GetRequiredService<
@@ -98,7 +105,8 @@ public partial class IntegrationViewModel : ObservableObject
                         MatchInfo = new MatchDto
                         {
                             Date = DateTime.Today,
-                            Day = detectedDay ?? JoursDisponibles.First()
+                            Day = detectedDay ?? JoursDisponibles.First(),
+                            Season = GetCurrentSeasonLabel()
                         }
                     });
                 }
@@ -149,6 +157,8 @@ public partial class IntegrationViewModel : ObservableObject
             throw new Exception("Session administrateur requise.");
         }
 
+        _playerNameMap.Clear();
+
         // Conversion XLSX → CSV
         string csvPath = _converter.ConvertXlsxToCsv(file.FullPath);
 
@@ -168,6 +178,8 @@ public partial class IntegrationViewModel : ObservableObject
 
         if (teamNames.Count < 2)
             throw new Exception("Impossible d'identifier deux équipes.");
+
+        teamNames = DetermineTeamOrderFromScoreColumns(rows, teamNames);
 
         int? team1Id = await ApiResolveTeamId(teamNames[0]);
         int? team2Id = await ApiResolveTeamId(teamNames[1]);
@@ -196,23 +208,94 @@ public partial class IntegrationViewModel : ObservableObject
             Team1Score = TryParseInt(last.TeamScore1) ?? 0,
             Team2Score = TryParseInt(last.TeamScore2) ?? 0,
             Year = file.MatchInfo.Date.Year,
+            Season = NormalizeSeason(file.MatchInfo.Season),
             Day = file.MatchInfo.Day
         };
 
+        file.StatusMessage = "Preparation des evenements...";
+        var pendingPlayerTeamUpdates = new Dictionary<int, PendingPlayerTeamUpdate>();
+        var preparedEvents = await PrepareMatchEventsAsync(rows, teamsFromFile, pendingPlayerTeamUpdates);
+
+        if (preparedEvents.Count == 0)
+            throw new Exception("Aucun evenement valide a integrer.");
+
+        file.StatusMessage = "Controle des doublons...";
+        var existingMatch = await FindExistingIdenticalMatchAsync(newMatch, preparedEvents);
+        if (existingMatch != null)
+        {
+            throw new Exception(
+                $"Ce fichier correspond deja au match #{existingMatch.MatchId} du {existingMatch.Date:dd/MM/yyyy} ({existingMatch.Day}).");
+        }
+
+        if (pendingPlayerTeamUpdates.Count > 0)
+        {
+            file.StatusMessage = "Mise a jour des equipes joueuses...";
+            await ApplyPendingPlayerTeamUpdatesAsync(pendingPlayerTeamUpdates.Values);
+        }
+
+        file.StatusMessage = "Creation du match...";
         var respMatch = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/Matches", newMatch);
         respMatch.EnsureSuccessStatusCode();
 
-        var createdMatch = await respMatch.Content.ReadFromJsonAsync<Match>();
+        var createdMatch = await respMatch.Content.ReadFromJsonAsync<Match>()
+            ?? throw new Exception("La creation du match a reussi mais la reponse est vide.");
 
+        file.StatusMessage = "Importation evenements...";
+        foreach (var preparedEvent in preparedEvents)
+        {
+            preparedEvent.MatchEvent.MatchId = createdMatch.Id;
 
-        file.StatusMessage = "Importation événements...";
+            var resp = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/MatchEvents", preparedEvent.MatchEvent);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+
+                var sentJson = System.Text.Json.JsonSerializer.Serialize(
+                    preparedEvent.MatchEvent,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+                var log =
+            $"""
+                    ==============================
+                    {DateTime.Now}
+                    
+                    ROUTE : POST api/MatchEvents
+                    STATUS : {(int)resp.StatusCode} {resp.ReasonPhrase}
+                    
+                    ----- OBJET ENVOYE -----
+                    {sentJson}
+                    
+                    ----- REPONSE API -----
+                    {body}
+                    
+                    ==============================
+                    
+                    """;
+
+                File.AppendAllText("integration_errors.log", log);
+
+                continue;
+            }
+
+            resp.EnsureSuccessStatusCode();
+        }
+    }
+       
+
+    private async Task<List<PreparedMatchEvent>> PrepareMatchEventsAsync(
+        List<MatchFileDto> rows,
+        List<TeamLight> teamsFromFile,
+        Dictionary<int, PendingPlayerTeamUpdate> pendingPlayerTeamUpdates)
+    {
+        var preparedEvents = new List<PreparedMatchEvent>();
         int currentHalf = 1;
         TimeSpan? prevTime = null;
 
         for (int i = 0; i < rows.Count; i++)
         {
             var dto = rows[i];
-            int rowIndex = i + 2; // +1 header, +1 for 1-based row index
+            int rowIndex = i + 2;
             var parsedTime = ParseTime(dto.Time);
             var prevTimeForLog = prevTime;
             var miTemps = NormalizeMiTemps(dto.MiTemps);
@@ -247,169 +330,220 @@ public partial class IntegrationViewModel : ObservableObject
             if (dto.Number >= 100)
             {
                 LogSkip("Number>=100", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
-                continue; // on integre pas l'évenement 
+                continue;
             }
-            int? teamId = await ApiResolveTeamId(dto.TeamId);
-            string originalName = dto.PlayerId;
-            var key = Key(originalName);
-            if (_playerNameMap.TryGetValue(key, out var mappedName))
+
+            int? teamId = ResolveTeamIdFromFile(dto.TeamId, teamsFromFile);
+            if (teamId == null)
             {
-
-                dto.PlayerId = mappedName;
+                teamId = await ApiResolveTeamId(dto.TeamId);
             }
 
-            int? playerId = await ApiResolvePlayerId(dto.PlayerId);
-
-
-            if (playerId == null && !string.IsNullOrWhiteSpace(dto.PlayerId))
-            {
-                var parts = dto.PlayerId.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                string prenom = parts.Length > 0 ? parts[0] : "";
-                string nom = parts.Length > 1 ? parts[^1] : "";
-
-                var candidates = await ApiSearchPlayersApprox(dto.PlayerId);
-
-                if (!candidates.Any())
-                {
-                    if (!string.IsNullOrEmpty(prenom))
-                        candidates.AddRange(await ApiSearchPlayersApprox(prenom));
-
-                    if (!string.IsNullOrEmpty(nom))
-                        candidates.AddRange(await ApiSearchPlayersApprox(nom));
-                }
-
-                candidates = candidates
-                    .GroupBy(p => p.Id)
-                    .Select(g => g.First())
-                    .ToList();
-
-                Player? selected = null;
-
-                if (candidates.Any())
-                {
-                    selected = TryAutoSelectPlayerCandidate(candidates, originalName);
-
-                    if (selected != null)
-                    {
-                        LogSimple($"Player auto-selected '{originalName}' -> '{selected.FullName}'");
-                    }
-                    else
-                    {
-                        selected = await ShowPlayerSelectionAsync(candidates, originalName);
-                    }
-                }
-
-               
-                if (selected == null)
-                {
-                    var createdPlayer = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        var win = new AddPlayerWindows(prenom, nom, teamsFromFile);
-                        win.Owner = System.Windows.Application.Current.MainWindow;
-                        return win.ShowDialog() == true ? win.CreatedPlayer : null;
-                    });
-
-                    if (createdPlayer == null)
-                        continue;
-
-                    playerId = createdPlayer.Id;
-                    _playerNameMap[key] = createdPlayer.FullName;
-                }
-                else
-                {
-
-                    playerId = selected.Id;
-                    _playerNameMap[key] = selected.FullName;
-                }
-            }
+            var resolvedPlayer = await ResolvePlayerAsync(dto, teamId, teamsFromFile);
             int? eventId = await ApiResolveIdEvent($"{_settings.BaseUrl}api/Event/", dto.EventId);
             int? attackId = await ApiResolveIdAttack(dto.AttackId);
             int? defenseId = await ApiResolveIdDefense(dto.DefenseId);
+
             if (teamId == null)
             {
                 LogSkip("Team inconnue", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
                 continue;
             }
 
-            if (playerId == null)
+            if (resolvedPlayer == null)
             {
                 LogSkip("Player inconnu", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
                 continue;
             }
 
-            // ---------- EVENT INCONNU = ID 37 ----------
             if (eventId == null)
             {
-                LogSimple($"Event inconnu '{dto.EventId}' → forcé à ID 37");
+                LogSimple($"Event inconnu '{dto.EventId}' -> force a ID 37");
                 eventId = 37;
             }
 
-            var matchEvent = new MatchEvent
+            RegisterPendingPlayerTeamUpdate(
+                pendingPlayerTeamUpdates,
+                resolvedPlayer,
+                teamId.Value,
+                dto.TeamId);
+
+            preparedEvents.Add(new PreparedMatchEvent
             {
+                SourceRowIndex = rowIndex,
+                MatchEvent = new MatchEvent
+                {
+                    TeamId = teamId.Value,
+                    PlayerId = resolvedPlayer.Id,
+                    EventId = eventId.Value,
+                    AttackId = attackId,
+                    DefenseId = defenseId,
+                    Time = parsedTime,
+                    MiTemps = miTemps,
+                    TeamScore1 = TryParseInt(dto.TeamScore1),
+                    TeamScore2 = TryParseInt(dto.TeamScore2),
+                    Action = dto.Action,
+                    ShootZone = dto.ShootZone,
+                    Shade = dto.Shade,
+                    ShootShade = dto.ShootShade,
+                    ArmSide = dto.ArmSide,
+                    Jump = dto.Jump,
+                    Trigger = dto.Trigger,
+                    PlayerNumber1 = dto.PlayerNumber1,
+                    PlayerNumber2 = dto.PlayerNumber2
+                }
+            });
+        }
 
+        return preparedEvents;
+    }
 
-                MatchId = createdMatch.Id,
-                TeamId = teamId ?? 0,
-                PlayerId = playerId ?? 0,
-                EventId = eventId.Value,
-                AttackId = attackId,
-                DefenseId = defenseId,
-                Time = ParseTime(dto.Time),
-                MiTemps = miTemps,
-                TeamScore1 = TryParseInt(dto.TeamScore1),
-                TeamScore2 = TryParseInt(dto.TeamScore2),
-                Action = dto.Action,
-                ShootZone = dto.ShootZone,
-                Shade = dto.Shade,
-                ShootShade = dto.ShootShade,
-                ArmSide = dto.ArmSide,
-                Jump = dto.Jump,
-                Trigger = dto.Trigger,
-                PlayerNumber1 = dto.PlayerNumber1,
-                PlayerNumber2 = dto.PlayerNumber2
-            };
+    private async Task<PlayerListItemDto?> ResolvePlayerAsync(
+        MatchFileDto dto,
+        int? teamId,
+        List<TeamLight> teamsFromFile)
+    {
+        dto.PlayerId = NormalizeImportedPlayerName(dto.PlayerId);
+        string originalName = dto.PlayerId;
+        var key = Key(originalName);
 
-            var resp = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/MatchEvents", matchEvent);
+        if (_playerNameMap.TryGetValue(key, out var mappedName))
+        {
+            dto.PlayerId = mappedName;
+        }
 
+        var resolvedPlayer = await ApiResolvePlayerAsync(dto.PlayerId);
+        if (resolvedPlayer != null)
+        {
+            _playerNameMap[key] = resolvedPlayer.FullName;
+            return resolvedPlayer;
+        }
 
-            if (!resp.IsSuccessStatusCode)
+        if (string.IsNullOrWhiteSpace(dto.PlayerId))
+        {
+            return null;
+        }
+
+        var parts = dto.PlayerId.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string prenom = parts.Length > 0 ? parts[0] : string.Empty;
+        string nom = parts.Length > 1 ? parts[^1] : string.Empty;
+
+        var candidates = await ApiSearchPlayersApprox(dto.PlayerId);
+        if (!candidates.Any())
+        {
+            if (!string.IsNullOrWhiteSpace(prenom))
+                candidates.AddRange(await ApiSearchPlayersApprox(prenom));
+
+            if (!string.IsNullOrWhiteSpace(nom))
+                candidates.AddRange(await ApiSearchPlayersApprox(nom));
+        }
+
+        candidates = candidates
+            .GroupBy(player => player.Id)
+            .Select(group => group.First())
+            .ToList();
+
+        PlayerListItemDto? selected = null;
+        if (candidates.Any())
+        {
+            selected = TryAutoSelectPlayerCandidate(candidates, originalName);
+
+            if (selected != null)
             {
-                var body = await resp.Content.ReadAsStringAsync();
+                LogSimple($"Player auto-selected '{originalName}' -> '{selected.FullName}'");
+            }
+            else
+            {
+                selected = await ShowPlayerSelectionAsync(candidates, originalName);
+            }
+        }
 
-                var sentJson = System.Text.Json.JsonSerializer.Serialize(
-                    matchEvent,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        if (selected != null)
+        {
+            _playerNameMap[key] = selected.FullName;
+            return selected;
+        }
 
-                var log =
-            $"""
-                    ==============================
-                    {DateTime.Now}
-                    
-                    ROUTE : POST api/MatchEvents
-                    STATUS : {(int)resp.StatusCode} {resp.ReasonPhrase}
-                    
-                    ----- OBJET ENVOYÉ -----
-                    {sentJson}
-                    
-                    ----- RÉPONSE API -----
-                    {body}
-                    
-                    ==============================
-                    
-                    """;
+        var createdPlayer = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            var win = new AddPlayerWindows(prenom, nom, teamsFromFile);
+            win.Owner = System.Windows.Application.Current.MainWindow;
+            return win.ShowDialog() == true ? win.CreatedPlayer : null;
+        });
 
-                File.AppendAllText("integration_errors.log", log);
+        if (createdPlayer == null)
+        {
+            return null;
+        }
 
-                continue; // on passe à l’event suivant
+        var createdPlayerDto = ToPlayerListItemDto(createdPlayer);
+        if (teamId.HasValue)
+        {
+            createdPlayerDto.TeamId = teamId.Value;
+        }
+
+        _playerNameMap[key] = createdPlayerDto.FullName;
+        return createdPlayerDto;
+    }
+
+    private async Task<MatchListItemDto?> FindExistingIdenticalMatchAsync(
+        Match expectedMatch,
+        IReadOnlyList<PreparedMatchEvent> preparedEvents)
+    {
+        if (expectedMatch.Date == null)
+        {
+            return null;
+        }
+
+        string dateValue = expectedMatch.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var matches = await _http.GetFromJsonAsync<List<MatchListItemDto>>(
+            $"{_settings.BaseUrl}api/Matches?competitionId={expectedMatch.CompetitionId}&from={dateValue}&to={dateValue}&pageSize=500")
+            ?? new List<MatchListItemDto>();
+
+        var candidates = matches.Where(match =>
+                match.CompetitionId == expectedMatch.CompetitionId
+                && match.Date?.Date == expectedMatch.Date.Value.Date
+                && string.Equals(NormalizeText(match.Season), NormalizeText(expectedMatch.Season), StringComparison.Ordinal)
+                && string.Equals(NormalizeText(match.Day), NormalizeText(expectedMatch.Day), StringComparison.Ordinal)
+                && match.Team1Id == expectedMatch.Team1Id
+                && match.Team2Id == expectedMatch.Team2Id
+                && match.Team1Score == expectedMatch.Team1Score
+                && match.Team2Score == expectedMatch.Team2Score)
+            .ToList();
+
+        foreach (var candidate in candidates)
+        {
+            var existingEvents = await GetExistingMatchEventsAsync(candidate.MatchId);
+            if (AreMatchEventsIdentical(preparedEvents, existingEvents))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<List<MatchEvent>> GetExistingMatchEventsAsync(int matchId)
+    {
+        return await _http.GetFromJsonAsync<List<MatchEvent>>(
+            $"{_settings.BaseUrl}api/MatchEvents?matchId={matchId}")
+            ?? new List<MatchEvent>();
+    }
+
+    private async Task ApplyPendingPlayerTeamUpdatesAsync(IEnumerable<PendingPlayerTeamUpdate> updates)
+    {
+        foreach (var update in updates)
+        {
+            bool success = await _playersApiService.UpdatePlayerTeamAsync(update.PlayerId, update.TeamId);
+            if (!success)
+            {
+                throw new Exception(
+                    $"Impossible de mettre a jour l'equipe de {update.PlayerName} vers {update.TeamName}.");
             }
 
-            resp.EnsureSuccessStatusCode();
-
-
-        
+            LogSimple($"Equipe synchronisee pour '{update.PlayerName}' -> '{update.TeamName}'");
         }
     }
-       
 
     // ---------------- HELPERS -------------------
     private async Task<int?> ApiResolveTeamId(string? name)
@@ -481,28 +615,27 @@ public partial class IntegrationViewModel : ObservableObject
 
         return null;
     }
-    private async Task<int?> ApiResolvePlayerId(string? name)
+    private async Task<PlayerListItemDto?> ApiResolvePlayerAsync(string? name)
     {
-        
         if (string.IsNullOrWhiteSpace(name)) return null;
 
         var resp = await _http.GetAsync($"{_settings.BaseUrl}api/Players/byfullname/{Uri.EscapeDataString(name)}");
 
         if (!resp.IsSuccessStatusCode) return null;
-        return (await resp.Content.ReadFromJsonAsync<Player>())?.Id;
+        return await resp.Content.ReadFromJsonAsync<PlayerListItemDto>();
     }
-    private async Task<List<Player>> ApiSearchPlayersApprox(string name)
+    private async Task<List<PlayerListItemDto>> ApiSearchPlayersApprox(string name)
     {
         var resp = await _http.GetAsync(
             $"{_settings.BaseUrl}api/Players/search/{Uri.EscapeDataString(name)}");
 
         if (!resp.IsSuccessStatusCode)
-            return new List<Player>();
+            return new List<PlayerListItemDto>();
 
-        return await resp.Content.ReadFromJsonAsync<List<Player>>()
-               ?? new List<Player>();
+        return await resp.Content.ReadFromJsonAsync<List<PlayerListItemDto>>()
+               ?? new List<PlayerListItemDto>();
     }
-    private Task<Player?> ShowPlayerSelectionAsync(List<Player> candidates, string searchedName)
+    private Task<PlayerListItemDto?> ShowPlayerSelectionAsync(List<PlayerListItemDto> candidates, string searchedName)
     {
         return System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
         {
@@ -514,13 +647,10 @@ public partial class IntegrationViewModel : ObservableObject
         }).Task;
     }
 
-    private Player? TryAutoSelectPlayerCandidate(List<Player> candidates, string searchedName)
+    private PlayerListItemDto? TryAutoSelectPlayerCandidate(List<PlayerListItemDto> candidates, string searchedName)
     {
         if (candidates == null || candidates.Count == 0)
             return null;
-
-        if (candidates.Count == 1)
-            return candidates[0];
 
         var ranked = candidates
             .Select(candidate => new
@@ -538,7 +668,10 @@ public partial class IntegrationViewModel : ObservableObject
         if (ranked[0].Score >= 100)
             return ranked[0].Player;
 
-        if (ranked.Count == 1 || ranked[0].Score >= ranked[1].Score + 5)
+        if (ranked.Count == 1)
+            return ranked[0].Score >= 18 ? ranked[0].Player : null;
+
+        if (ranked[0].Score >= 18 && ranked[0].Score >= ranked[1].Score + 5)
             return ranked[0].Player;
 
         return null;
@@ -661,6 +794,171 @@ public partial class IntegrationViewModel : ObservableObject
             builder.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
     }
 
+    private static string NormalizeImportedPlayerName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var trimmed = value.Trim();
+        int start = 0;
+        int end = trimmed.Length - 1;
+
+        while (start <= end && !char.IsLetterOrDigit(trimmed[start]))
+        {
+            start++;
+        }
+
+        while (end >= start && !char.IsLetterOrDigit(trimmed[end]))
+        {
+            end--;
+        }
+
+        if (start > end)
+            return string.Empty;
+
+        return string.Join(
+            " ",
+            trimmed[start..(end + 1)]
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static bool AreMatchEventsIdentical(
+        IReadOnlyList<PreparedMatchEvent> currentEvents,
+        IReadOnlyList<MatchEvent> existingEvents)
+    {
+        if (currentEvents.Count != existingEvents.Count)
+            return false;
+
+        var currentGroups = currentEvents
+            .GroupBy(item => BuildMatchEventFingerprint(item.MatchEvent))
+            .ToDictionary(group => group.Key, group => group.Count());
+
+        var existingGroups = existingEvents
+            .GroupBy(BuildMatchEventFingerprint)
+            .ToDictionary(group => group.Key, group => group.Count());
+
+        if (currentGroups.Count != existingGroups.Count)
+            return false;
+
+        foreach (var currentGroup in currentGroups)
+        {
+            if (!existingGroups.TryGetValue(currentGroup.Key, out var existingCount)
+                || existingCount != currentGroup.Value)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static string BuildMatchEventFingerprint(MatchEvent matchEvent)
+    {
+        string timeValue = matchEvent.Time.HasValue
+            ? ((int)matchEvent.Time.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
+
+        return string.Join("|", new[]
+        {
+            matchEvent.TeamId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            matchEvent.PlayerId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            matchEvent.EventId.ToString(CultureInfo.InvariantCulture),
+            matchEvent.AttackId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            matchEvent.DefenseId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            timeValue,
+            NormalizeText(matchEvent.MiTemps),
+            matchEvent.TeamScore1?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            matchEvent.TeamScore2?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            NormalizeText(matchEvent.Action),
+            NormalizeText(matchEvent.ShootZone),
+            NormalizeText(matchEvent.Shade),
+            NormalizeText(matchEvent.ShootShade),
+            NormalizeText(matchEvent.ArmSide),
+            NormalizeText(matchEvent.Jump),
+            NormalizeText(matchEvent.Trigger),
+            NormalizeText(matchEvent.PlayerNumber1),
+            NormalizeText(matchEvent.PlayerNumber2)
+        });
+    }
+
+    private static string NormalizeText(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToUpperInvariant();
+
+    private static string BuildSeasonLabel(int startYear)
+        => $"{startYear}-{startYear + 1}";
+
+    private string GetCurrentSeasonLabel()
+    {
+        int currentYear = DateTime.Today.Year;
+        int startYear = DateTime.Today.Month >= 7
+            ? currentYear
+            : currentYear - 1;
+
+        startYear = Math.Clamp(startYear, 2010, 2030);
+        return BuildSeasonLabel(startYear);
+    }
+
+    private static string? NormalizeSeason(string? season)
+    {
+        if (string.IsNullOrWhiteSpace(season))
+            return null;
+
+        return season.Trim();
+    }
+
+    private static int? ResolveTeamIdFromFile(string? teamName, IEnumerable<TeamLight> teamsFromFile)
+    {
+        if (string.IsNullOrWhiteSpace(teamName))
+            return null;
+
+        return teamsFromFile
+            .FirstOrDefault(team => string.Equals(
+                team.Name?.Trim(),
+                teamName.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+            ?.Id;
+    }
+
+    private static void RegisterPendingPlayerTeamUpdate(
+        Dictionary<int, PendingPlayerTeamUpdate> pendingPlayerTeamUpdates,
+        PlayerListItemDto resolvedPlayer,
+        int currentTeamId,
+        string? currentTeamName)
+    {
+        if (resolvedPlayer.Id <= 0)
+            return;
+
+        if (resolvedPlayer.TeamId == currentTeamId)
+            return;
+
+        pendingPlayerTeamUpdates[resolvedPlayer.Id] = new PendingPlayerTeamUpdate
+        {
+            PlayerId = resolvedPlayer.Id,
+            PlayerName = resolvedPlayer.FullName,
+            TeamId = currentTeamId,
+            TeamName = string.IsNullOrWhiteSpace(currentTeamName)
+                ? currentTeamId.ToString(CultureInfo.InvariantCulture)
+                : currentTeamName.Trim()
+        };
+    }
+
+    private static PlayerListItemDto ToPlayerListItemDto(Player player)
+    {
+        return new PlayerListItemDto
+        {
+            PlayerId = player.Id,
+            FullName = player.FullName,
+            TeamId = player.TeamId,
+            PositionId = player.PositionId,
+            Age = player.Age,
+            Number = player.Number,
+            Birthday = player.Birthday,
+            IsActive = player.IsActive
+        };
+    }
+
     private async Task<int?> ApiResolveId(string route, string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
@@ -671,6 +969,84 @@ public partial class IntegrationViewModel : ObservableObject
 
     private static int? TryParseInt(string? s)
         => int.TryParse((s ?? "").Trim(), out var v) ? v : null;
+
+    private static List<string> DetermineTeamOrderFromScoreColumns(
+        IReadOnlyList<MatchFileDto> rows,
+        IReadOnlyList<string> detectedTeams)
+    {
+        var teams = detectedTeams
+            .Where(team => !string.IsNullOrWhiteSpace(team))
+            .Select(team => team.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+
+        if (teams.Count != 2)
+            return teams;
+
+        var scoreColumnToTeam = new Dictionary<int, string>();
+        int? previousScoreA = 0;
+        int? previousScoreB = 0;
+
+        foreach (var row in rows)
+        {
+            int currentScoreA = TryParseInt(row.TeamScore1) ?? previousScoreA ?? 0;
+            int currentScoreB = TryParseInt(row.TeamScore2) ?? previousScoreB ?? 0;
+            int deltaA = currentScoreA - (previousScoreA ?? 0);
+            int deltaB = currentScoreB - (previousScoreB ?? 0);
+            string currentTeam = (row.TeamId ?? string.Empty).Trim();
+
+            if (!string.IsNullOrWhiteSpace(currentTeam) && IsScoringEvent(row.EventId))
+            {
+                if (deltaA > 0 && deltaB <= 0)
+                {
+                    scoreColumnToTeam[1] = currentTeam;
+                }
+                else if (deltaB > 0 && deltaA <= 0)
+                {
+                    scoreColumnToTeam[2] = currentTeam;
+                }
+            }
+
+            previousScoreA = currentScoreA;
+            previousScoreB = currentScoreB;
+
+            if (scoreColumnToTeam.Count == 2)
+                break;
+        }
+
+        if (scoreColumnToTeam.TryGetValue(1, out var teamForScoreA)
+            && scoreColumnToTeam.TryGetValue(2, out var teamForScoreB))
+        {
+            return new List<string> { teamForScoreA, teamForScoreB };
+        }
+
+        if (scoreColumnToTeam.TryGetValue(1, out teamForScoreA))
+        {
+            var otherTeam = teams.FirstOrDefault(team => !string.Equals(team, teamForScoreA, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(otherTeam))
+                return new List<string> { teamForScoreA, otherTeam };
+        }
+
+        if (scoreColumnToTeam.TryGetValue(2, out teamForScoreB))
+        {
+            var otherTeam = teams.FirstOrDefault(team => !string.Equals(team, teamForScoreB, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(otherTeam))
+                return new List<string> { otherTeam, teamForScoreB };
+        }
+
+        return teams;
+    }
+
+    private static bool IsScoringEvent(string? eventName)
+    {
+        if (string.IsNullOrWhiteSpace(eventName))
+            return false;
+
+        var normalized = NormalizeText(eventName);
+        return normalized.StartsWith("BUT", StringComparison.Ordinal)
+            && !normalized.Contains("GARDIEN PREND", StringComparison.Ordinal);
+    }
 
     private static TimeSpan? ParseTime(string? s)
     {
@@ -789,18 +1165,34 @@ public partial class IntegrationViewModel : ObservableObject
     private sealed class IdNameDto { public int Id { get; set; } }
     public class PlayerCreateDto
     {
-        public string Name { get; set; }           
-        public string Surname { get; set; }       
+        public string Name { get; set; }
+        public string Surname { get; set; }
         public DateTime? Birthday { get; set; }
-        public int PositionId { get; set; }
-        public int TeamId { get; set; }
-        public int NationalityId { get; set; }
-        public int Number { get; set; }
+        public int? Age { get; set; }
+        public int? PositionId { get; set; }
+        public int? TeamId { get; set; }
+        public int? NationalityId { get; set; }
+        public int? Number { get; set; }
+        public bool IsActive { get; set; } = true;
     }
     public class TeamLight
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private sealed class PreparedMatchEvent
+    {
+        public int SourceRowIndex { get; set; }
+        public MatchEvent MatchEvent { get; set; } = new();
+    }
+
+    private sealed class PendingPlayerTeamUpdate
+    {
+        public int PlayerId { get; set; }
+        public int TeamId { get; set; }
+        public string PlayerName { get; set; } = string.Empty;
+        public string TeamName { get; set; } = string.Empty;
     }
     private void LogSimple(string msg)
     {

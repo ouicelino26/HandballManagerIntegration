@@ -1,30 +1,17 @@
-﻿using HandballManagerCore.Models;
-using System;
+using HandballManagerCore.DTO;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace HandballIntegration.Views
 {
-    /// <summary>
-    /// Logique d'interaction pour FoundPlayersWindows.xaml
-    /// </summary>
     public partial class FoundPlayersWindows : Window
     {
-        public List<Player> Players { get; }
+        public List<PlayerListItemDto> Players { get; }
         public string SearchText { get; }
-        public Player? SelectedPlayer { get; private set; }
+        public PlayerListItemDto? SelectedPlayer { get; private set; }
 
-        public FoundPlayersWindows(List<Player> players, string searchText)
+        public FoundPlayersWindows(List<PlayerListItemDto> players, string searchText)
         {
             InitializeComponent();
             Players = players;
@@ -34,10 +21,10 @@ namespace HandballIntegration.Views
 
         private void Validate_Click(object sender, RoutedEventArgs e)
         {
-            SelectedPlayer = PlayersListBox.SelectedItem as Player;
+            SelectedPlayer = PlayersListBox.SelectedItem as PlayerListItemDto;
             if (SelectedPlayer == null)
             {
-                MessageBox.Show("Veuillez sélectionner une joueuse.");
+                MessageBox.Show("Veuillez selectionner une joueuse.");
                 return;
             }
 
@@ -59,5 +46,4 @@ namespace HandballIntegration.Views
             }
         }
     }
-
 }

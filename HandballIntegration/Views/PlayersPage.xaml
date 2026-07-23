@@ -24,12 +24,26 @@
             <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
 
+        <DataTemplate x:Key="TeamItemTemplate">
+            <TextBlock Text="{Binding Name}" Foreground="{StaticResource PrimaryTextBrush}"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="LookupItemTemplate">
+            <TextBlock Text="{Binding Name}" Foreground="{StaticResource PrimaryTextBrush}"/>
+        </DataTemplate>
+
+        <Style x:Key="DialogComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ElevatedSurfaceBrush}"/>
+        </Style>
+
         <ui:ContentDialog x:Key="EditPlayerDialog"
-                          Title="Modifier la joueuse"
+                          Title="Modifier une joueuse"
                           PrimaryButtonText="Enregistrer"
                           CloseButtonText="Fermer"
                           DefaultButton="Primary"
-                          Width="620">
+                          Width="720">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Grid Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -40,7 +54,7 @@
                 <TextBlock Grid.Row="0"
                            FontSize="13"
                            Foreground="{StaticResource SecondaryTextBrush}"
-                           Text="Edition locale en attendant la route de mise a jour API."/>
+                           Text="Met a jour les informations principales de la joueuse dans l'API."/>
 
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
@@ -51,34 +65,79 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,12">
-                        <TextBlock Text="Nom complet" Style="{StaticResource DialogLabelStyle}"/>
-                        <TextBox Text="{Binding FullName}" Style="{StaticResource AppTextBoxStyle}"/>
+                        <TextBlock Text="Prenom" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding FirstName}" Style="{StaticResource AppTextBoxStyle}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,12">
+                        <TextBlock Text="Nom" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding LastName}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,12">
+                        <TextBlock Text="Date de naissance" Style="{StaticResource DialogLabelStyle}"/>
+                        <DatePicker SelectedDate="{Binding Birthday}"
+                                    SelectedDateFormat="Short"
+                                    Style="{StaticResource AppDatePickerStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,12">
                         <TextBlock Text="Age" Style="{StaticResource DialogLabelStyle}"/>
                         <TextBox Text="{Binding Age}" Style="{StaticResource AppTextBoxStyle}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,12">
+                    <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,12">
+                        <TextBlock Text="Numero" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox Text="{Binding Number}" Style="{StaticResource AppTextBoxStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,12">
                         <TextBlock Text="Equipe" Style="{StaticResource DialogLabelStyle}"/>
-                        <TextBox Text="{Binding TeamName}" Style="{StaticResource AppTextBoxStyle}"/>
+                        <ComboBox ItemsSource="{Binding Teams}"
+                                  ItemTemplate="{StaticResource TeamItemTemplate}"
+                                  ItemContainerStyle="{StaticResource DialogComboBoxItemStyle}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding TeamId}"
+                                  Foreground="{StaticResource PrimaryTextBrush}"
+                                  Style="{StaticResource AppComboBoxStyle}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,12">
+                    <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,12">
                         <TextBlock Text="Poste" Style="{StaticResource DialogLabelStyle}"/>
-                        <TextBox Text="{Binding PositionName}" Style="{StaticResource AppTextBoxStyle}"/>
+                        <ComboBox ItemsSource="{Binding Positions}"
+                                  ItemTemplate="{StaticResource LookupItemTemplate}"
+                                  ItemContainerStyle="{StaticResource DialogComboBoxItemStyle}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding PositionId}"
+                                  Foreground="{StaticResource PrimaryTextBrush}"
+                                  Style="{StaticResource AppComboBoxStyle}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2">
+                    <StackPanel Grid.Row="3" Grid.Column="1" Margin="10,0,0,12">
                         <TextBlock Text="Nationalite" Style="{StaticResource DialogLabelStyle}"/>
-                        <TextBox Text="{Binding CountryName}" Style="{StaticResource AppTextBoxStyle}"/>
+                        <ComboBox ItemsSource="{Binding Nationalities}"
+                                  ItemTemplate="{StaticResource LookupItemTemplate}"
+                                  ItemContainerStyle="{StaticResource DialogComboBoxItemStyle}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding NationalityId}"
+                                  Foreground="{StaticResource PrimaryTextBrush}"
+                                  Style="{StaticResource AppComboBoxStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="4" Grid.ColumnSpan="2">
+                        <TextBlock Text="Disponibilite" Style="{StaticResource DialogLabelStyle}"/>
+                        <CheckBox IsChecked="{Binding IsActive}"
+                                  Content="Joueuse active"
+                                  Foreground="{StaticResource PrimaryTextBrush}"/>
                     </StackPanel>
                 </Grid>
             </Grid>
+            </ScrollViewer>
         </ui:ContentDialog>
     </Page.Resources>
 
@@ -102,7 +161,7 @@
                     <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Joueuses"/>
                     <TextBlock Margin="0,6,0,0"
                                Style="{StaticResource BodyTextStyle}"
-                               Text="Recherche rapide et actions directes."/>
+                               Text="Recherche rapide, edition complete et actions directes."/>
                     <TextBox x:Name="SearchBox"
                              Margin="0,14,0,0"
                              Width="360"
@@ -137,7 +196,7 @@
 
             <Border Margin="8,0" Style="{StaticResource MetricCardStyle}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Resultats"/>
+                    <TextBlock Style="{StaticResource MetricLabelTextStyle}" Text="Actives"/>
                     <TextBlock x:Name="ResultsCountText"
                                Margin="0,6,0,0"
                                Style="{StaticResource MetricValueTextStyle}"
@@ -168,7 +227,7 @@
                     <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Liste"/>
                     <TextBlock Margin="0,6,0,0"
                                Style="{StaticResource BodyTextStyle}"
-                               Text="Edition et suppression directement dans le tableau."/>
+                               Text="Edition complete et suppression directement depuis le tableau."/>
                 </StackPanel>
 
                 <DataGrid Grid.Row="2"
@@ -180,7 +239,7 @@
                         <DataGridTextColumn Header="Nom complet"
                                             Binding="{Binding FullName}"
                                             SortMemberPath="FullName"
-                                            Width="2.2*"/>
+                                            Width="2.1*"/>
                         <DataGridTextColumn Header="Age"
                                             Binding="{Binding Age}"
                                             SortMemberPath="Age"
@@ -192,11 +251,14 @@
                         <DataGridTextColumn Header="Poste"
                                             Binding="{Binding PositionName}"
                                             SortMemberPath="PositionName"
-                                            Width="1.2*"/>
+                                            Width="1.1*"/>
+                        <DataGridCheckBoxColumn Header="Active"
+                                                Binding="{Binding IsActive}"
+                                                Width="0.9*"/>
                         <DataGridTextColumn Header="Pays"
                                             Binding="{Binding CountryName}"
                                             SortMemberPath="CountryName"
-                                            Width="1.2*"/>
+                                            Width="1.1*"/>
                         <DataGridTemplateColumn Header="Actions" Width="1.6*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

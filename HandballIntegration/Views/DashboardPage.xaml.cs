@@ -33,7 +33,7 @@ namespace HandballIntegration.Views
                 bool isConnected = await _apiService.TestConnectionAsync();
                 ApplyApiStatus(isConnected);
 
-                var players = await _playersService.GetPlayersAsync() ?? new List<PlayerDto>();
+                var players = await _playersService.GetPlayersAsync() ?? new List<PlayerListItemDto>();
                 PopulateMetrics(players);
                 PopulatePreview(players);
             }
@@ -42,8 +42,8 @@ namespace HandballIntegration.Views
                 ApplyApiStatus(false);
                 SyncMomentText.Text = "Chargement interrompu";
                 DashboardHintText.Text = "Le dashboard est reste ouvert, mais une erreur s'est produite pendant le chargement : " + ex.Message;
-                PopulateMetrics(new List<PlayerDto>());
-                PopulatePreview(new List<PlayerDto>());
+                PopulateMetrics(new List<PlayerListItemDto>());
+                PopulatePreview(new List<PlayerListItemDto>());
             }
         }
 
@@ -64,7 +64,7 @@ namespace HandballIntegration.Views
             DashboardHintText.Text = "L'application reste navigable, mais les vues alimentees par l'API auront des contenus partiels tant que l'authentification ne repond pas.";
         }
 
-        private void PopulateMetrics(IReadOnlyCollection<PlayerDto> players)
+        private void PopulateMetrics(IReadOnlyCollection<PlayerListItemDto> players)
         {
             PlayersCountText.Text = players.Count.ToString();
             TeamsCountText.Text = players
@@ -81,7 +81,7 @@ namespace HandballIntegration.Views
                 .ToString();
         }
 
-        private void PopulatePreview(IReadOnlyCollection<PlayerDto> players)
+        private void PopulatePreview(IReadOnlyCollection<PlayerListItemDto> players)
         {
             RecentDataGrid.ItemsSource = players
                 .Where(p => !string.IsNullOrWhiteSpace(p.FullName))

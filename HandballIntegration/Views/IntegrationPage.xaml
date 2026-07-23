@@ -33,179 +33,401 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource SurfaceCardStyle}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Integration"/>
-                    <TextBlock Margin="0,6,0,0"
-                               Style="{StaticResource BodyTextStyle}"
-                               Text="Choisir le dossier, verifier la date puis lancer l'import."/>
-                    <Border Margin="0,14,0,0"
-                            Padding="14,12"
-                            CornerRadius="16"
-                            Background="{StaticResource ContentSurfaceBrush}"
-                            BorderBrush="{StaticResource CardBorderBrush}"
-                            BorderThickness="1">
-                        <TextBlock Text="{Binding SelectedFolder, TargetNullValue=Aucun dossier selectionne, FallbackValue=Aucun dossier selectionne}"
-                                   TextWrapping="Wrap"
-                                   Foreground="{StaticResource PrimaryTextBrush}"/>
-                    </Border>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1"
-                            Margin="16,0,0,0"
-                            HorizontalAlignment="Right">
-                    <Button Content="Choisir un dossier"
-                            Margin="0,10,0,0"
-                            Click="BrowseFolder_Click"/>
-                    <Border Margin="0,10,0,0"
-                            Padding="12,8"
-                            CornerRadius="14"
-                            Background="{StaticResource AccentAltSoftBrush}">
-                        <TextBlock Text="{Binding Files.Count, StringFormat={}{0} fichier(s)}"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource AccentAltDarkBrush}"/>
-                    </Border>
-                </StackPanel>
-            </Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Integration"/>
+                <TextBlock Margin="0,6,0,0"
+                           Style="{StaticResource BodyTextStyle}"
+                           Text="Un seul espace pour l'import complet des actions et l'import cible des temps de jeu."/>
+            </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource SurfaceCardStyle}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="12"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+        <TabControl Grid.Row="2"
+                    Background="Transparent"
+                    BorderThickness="0">
+            <TabItem Header="Actions">
+                <Grid DataContext="{Binding ClassicViewModel}" Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0">
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Fichiers a integrer"/>
-                    <TextBlock Margin="0,6,0,0"
-                               Style="{StaticResource BodyTextStyle}"
-                               Text="La date et le jour de match restent modifiables ligne par ligne."/>
-                </StackPanel>
+                    <Border Grid.Row="0" Style="{StaticResource SurfaceCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                <DataGrid Grid.Row="2"
-                          ItemsSource="{Binding Files}"
-                          Style="{StaticResource AppDataGridStyle}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Fichier"
-                                            Binding="{Binding FileName}"
-                                            Width="1.8*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                    <Setter Property="ToolTip" Value="{Binding FileName}"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Import actions"/>
+                                <TextBlock Margin="0,6,0,0"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Text="Choisir le dossier, verifier la date puis lancer l'import des evenements du match."/>
+                                <Border Margin="0,14,0,0"
+                                        Padding="14,12"
+                                        CornerRadius="16"
+                                        Background="{StaticResource ContentSurfaceBrush}"
+                                        BorderBrush="{StaticResource CardBorderBrush}"
+                                        BorderThickness="1">
+                                    <TextBlock Text="{Binding SelectedFolder, TargetNullValue=Aucun dossier selectionne, FallbackValue=Aucun dossier selectionne}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </Border>
+                            </StackPanel>
 
-                        <DataGridTextColumn Header="Chemin"
-                                            Binding="{Binding FullPath}"
-                                            Width="2.3*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
-                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                    <Setter Property="ToolTip" Value="{Binding FullPath}"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                            <StackPanel Grid.Column="1"
+                                        Margin="16,0,0,0"
+                                        HorizontalAlignment="Right">
+                                <Button Content="Choisir un dossier"
+                                        Margin="0,10,0,0"
+                                        Click="BrowseClassicFolder_Click"/>
+                                <Border Margin="0,10,0,0"
+                                        Padding="12,8"
+                                        CornerRadius="14"
+                                        Background="{StaticResource AccentAltSoftBrush}">
+                                    <TextBlock Text="{Binding Files.Count, StringFormat={}{0} fichier(s)}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentAltDarkBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
-                        <DataGridTemplateColumn Header="Date" Width="170">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <DatePicker SelectedDate="{Binding MatchInfo.Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                Style="{StaticResource AppDatePickerStyle}"
-                                                SelectedDateFormat="Short"
-                                                HorizontalAlignment="Center"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                    <Border Grid.Row="2" Style="{StaticResource SurfaceCardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="12"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-                        <DataGridTemplateColumn Header="J match" Width="116">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <ComboBox Width="82"
-                                              HorizontalAlignment="Center"
-                                              Style="{StaticResource AppComboBoxStyle}"
-                                              ItemsSource="{Binding DataContext.JoursDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                              SelectedItem="{Binding MatchInfo.Day, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                            <StackPanel Grid.Row="0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Fichiers a integrer"/>
+                                <TextBlock Margin="0,6,0,0"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Text="La date, la saison et le jour de match restent modifiables ligne par ligne."/>
+                            </StackPanel>
 
-                        <DataGridTemplateColumn Header="Action" Width="124">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Button Content="Integrer"
-                                            HorizontalAlignment="Center"
-                                            Style="{StaticResource PrimaryActionButton}"
-                                            Click="Integration_Click"
-                                            Command="{Binding DataContext.IntegrateCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                            CommandParameter="{Binding}"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                            <DataGrid Grid.Row="2"
+                                      ItemsSource="{Binding Files}"
+                                      Style="{StaticResource AppDataGridStyle}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Fichier"
+                                                        Binding="{Binding FileName}"
+                                                        Width="1.8*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding FileName}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
 
-                        <DataGridTemplateColumn Header="Statut" Width="180">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid>
-                                        <Border Background="#EAF1FF"
-                                                CornerRadius="14"
-                                                Padding="10,8"
-                                                Visibility="{Binding Status, Converter={StaticResource BusyVisibility}}">
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <ui:ProgressRing Width="18" Height="18" IsActive="True"/>
-                                                <TextBlock Text="{Binding StatusMessage}"
-                                                           Margin="8,0,0,0"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{StaticResource PrimaryTextBrush}"/>
-                                            </StackPanel>
-                                        </Border>
+                                    <DataGridTextColumn Header="Chemin"
+                                                        Binding="{Binding FullPath}"
+                                                        Width="2.3*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding FullPath}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
 
-                                        <Border Background="{StaticResource AccentAltSoftBrush}"
-                                                CornerRadius="14"
-                                                Padding="10,8"
-                                                Visibility="{Binding Status, Converter={StaticResource SuccessVisibility}}">
-                                            <TextBlock Text="{Binding StatusMessage}"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="{StaticResource AccentAltDarkBrush}"
-                                                       FontWeight="SemiBold"/>
-                                        </Border>
+                                    <DataGridTemplateColumn Header="Date" Width="170">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <DatePicker SelectedDate="{Binding MatchInfo.Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            Style="{StaticResource AppDatePickerStyle}"
+                                                            SelectedDateFormat="Short"
+                                                            HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
 
-                                        <Border Background="{StaticResource DangerSoftBrush}"
-                                                CornerRadius="14"
-                                                Padding="10,8"
-                                                Visibility="{Binding Status, Converter={StaticResource ErrorVisibility}}">
-                                            <TextBlock Text="{Binding StatusMessage}"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="{StaticResource DangerBrush}"
-                                                       FontWeight="SemiBold"/>
-                                        </Border>
+                                    <DataGridTemplateColumn Header="Saison" Width="140">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox Width="112"
+                                                          HorizontalAlignment="Center"
+                                                          Style="{StaticResource AppComboBoxStyle}"
+                                                          ItemsSource="{Binding DataContext.SaisonsDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                          SelectedItem="{Binding MatchInfo.Season, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
 
-                                        <Border Background="{StaticResource SoftNeutralBrush}"
-                                                CornerRadius="14"
-                                                Padding="10,8"
-                                                Visibility="{Binding Status, Converter={StaticResource PendingVisibility}}">
-                                            <TextBlock Text="En attente"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                                       FontWeight="SemiBold"/>
-                                        </Border>
-                                    </Grid>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-        </Border>
+                                    <DataGridTemplateColumn Header="J match" Width="116">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox Width="82"
+                                                          HorizontalAlignment="Center"
+                                                          Style="{StaticResource AppComboBoxStyle}"
+                                                          ItemsSource="{Binding DataContext.JoursDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                          SelectedItem="{Binding MatchInfo.Day, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Action" Width="124">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Integrer"
+                                                        HorizontalAlignment="Center"
+                                                        Style="{StaticResource PrimaryActionButton}"
+                                                        Click="Integration_Click"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Statut" Width="180">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Border Background="#EAF1FF"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource BusyVisibility}}">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <ui:ProgressRing Width="18" Height="18" IsActive="True"/>
+                                                            <TextBlock Text="{Binding StatusMessage}"
+                                                                       Margin="8,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource PrimaryTextBrush}"/>
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <Border Background="{StaticResource AccentAltSoftBrush}"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource SuccessVisibility}}">
+                                                        <TextBlock Text="{Binding StatusMessage}"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource AccentAltDarkBrush}"
+                                                                   FontWeight="SemiBold"/>
+                                                    </Border>
+
+                                                    <Border Background="{StaticResource DangerSoftBrush}"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource ErrorVisibility}}">
+                                                        <TextBlock Text="{Binding StatusMessage}"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource DangerBrush}"
+                                                                   FontWeight="SemiBold"/>
+                                                    </Border>
+
+                                                    <Border Background="{StaticResource SoftNeutralBrush}"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource PendingVisibility}}">
+                                                        <TextBlock Text="En attente"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                                   FontWeight="SemiBold"/>
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Temps de jeu">
+                <Grid DataContext="{Binding TimeViewModel}" Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource SurfaceCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Import temps de jeu"/>
+                                <TextBlock Margin="0,6,0,0"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Text="Lit Feuil1, retrouve le match deja present en base, puis alimente les temps de jeu joueuse par joueuse."/>
+                                <Border Margin="0,14,0,0"
+                                        Padding="14,12"
+                                        CornerRadius="16"
+                                        Background="{StaticResource ContentSurfaceBrush}"
+                                        BorderBrush="{StaticResource CardBorderBrush}"
+                                        BorderThickness="1">
+                                    <TextBlock Text="{Binding SelectedFolder, TargetNullValue=Aucun dossier selectionne, FallbackValue=Aucun dossier selectionne}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1"
+                                        Margin="16,0,0,0"
+                                        HorizontalAlignment="Right">
+                                <Button Content="Choisir un dossier"
+                                        Margin="0,10,0,0"
+                                        Click="BrowseTimeFolder_Click"/>
+                                <Border Margin="0,10,0,0"
+                                        Padding="12,8"
+                                        CornerRadius="14"
+                                        Background="{StaticResource AccentAltSoftBrush}">
+                                    <TextBlock Text="{Binding Files.Count, StringFormat={}{0} fichier(s)}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentAltDarkBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource SurfaceCardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="12"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Fichiers temps a integrer"/>
+                                <TextBlock Margin="0,6,0,0"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Text="Selectionne la saison et la journee. Si le match n'existe pas, le fichier est refuse."/>
+                            </StackPanel>
+
+                            <DataGrid Grid.Row="2"
+                                      ItemsSource="{Binding Files}"
+                                      Style="{StaticResource AppDataGridStyle}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Fichier"
+                                                        Binding="{Binding FileName}"
+                                                        Width="1.7*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding FileName}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Chemin"
+                                                        Binding="{Binding FullPath}"
+                                                        Width="2.1*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding FullPath}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Equipes"
+                                                        Binding="{Binding TeamsLabel}"
+                                                        Width="1.1*"/>
+
+                                    <DataGridTemplateColumn Header="Saison" Width="140">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox Width="112"
+                                                          HorizontalAlignment="Center"
+                                                          Style="{StaticResource AppComboBoxStyle}"
+                                                          ItemsSource="{Binding DataContext.SaisonsDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                          SelectedItem="{Binding MatchInfo.Season, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="J match" Width="116">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox Width="82"
+                                                          HorizontalAlignment="Center"
+                                                          Style="{StaticResource AppComboBoxStyle}"
+                                                          ItemsSource="{Binding DataContext.JoursDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                          SelectedItem="{Binding MatchInfo.Day, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Action" Width="124">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Integrer"
+                                                        HorizontalAlignment="Center"
+                                                        Style="{StaticResource PrimaryActionButton}"
+                                                        Click="TimeIntegration_Click"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Statut" Width="180">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Border Background="#EAF1FF"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource BusyVisibility}}">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <ui:ProgressRing Width="18" Height="18" IsActive="True"/>
+                                                            <TextBlock Text="{Binding StatusMessage}"
+                                                                       Margin="8,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource PrimaryTextBrush}"/>
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <Border Background="{StaticResource AccentAltSoftBrush}"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource SuccessVisibility}}">
+                                                        <TextBlock Text="{Binding StatusMessage}"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource AccentAltDarkBrush}"
+                                                                   FontWeight="SemiBold"/>
+                                                    </Border>
+
+                                                    <Border Background="{StaticResource DangerSoftBrush}"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource ErrorVisibility}}">
+                                                        <TextBlock Text="{Binding StatusMessage}"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource DangerBrush}"
+                                                                   FontWeight="SemiBold"/>
+                                                    </Border>
+
+                                                    <Border Background="{StaticResource SoftNeutralBrush}"
+                                                            CornerRadius="14"
+                                                            Padding="10,8"
+                                                            Visibility="{Binding Status, Converter={StaticResource PendingVisibility}}">
+                                                        <TextBlock Text="En attente"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                                   FontWeight="SemiBold"/>
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Page>
