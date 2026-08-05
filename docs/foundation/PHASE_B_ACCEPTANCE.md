@@ -15,7 +15,8 @@
 | Client test foundation | `PASS` | 22 tests, 0 failures. |
 | Release build | `PASS` | 0 errors; 33 known warnings. |
 | Current-tree secret scan | `PASS` | 0 findings, including non-ignored untracked files. |
-| Client CI definition | `ADDED` | Windows restore/build/test/scan workflow; remote execution pending push. |
+| Client CI definition | `BLOCKED` | Workflow is valid, but GitHub requires a repository secret granting read access to the private Core repository. |
+| Three-repository clean clone | `PASS` | Core/API/Integration remote branches restored and built; 190 API tests and 22 client tests passed. |
 
 ## Deliberate limits
 
@@ -33,4 +34,4 @@
 
 `READY_FOR_PRODUCTION=NO`
 
-The Phase C gate may move to `YES` only after targeted commits are pushed, both CI definitions are present, and all Core/API/Integration branches pass the required clean-clone sequence from their remote heads.
+The clean-clone requirement is satisfied. The Phase C gate may move to `YES` only after `CORE_REPOSITORY_TOKEN` is configured with read-only access to Core and both remote workflows pass. Secret rotation remains separately required before production publication.

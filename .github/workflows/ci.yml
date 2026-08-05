@@ -21,6 +21,15 @@ jobs:
           path: HandballIntegration
           persist-credentials: false
 
+      - name: Validate private Core access
+        shell: powershell
+        env:
+          CORE_REPOSITORY_TOKEN: ${{ secrets.CORE_REPOSITORY_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CORE_REPOSITORY_TOKEN)) {
+            throw "Repository secret CORE_REPOSITORY_TOKEN is required to read the private Core dependency."
+          }
+
       - name: Checkout Core dependency
         uses: actions/checkout@v4
         with:
@@ -28,6 +37,7 @@ jobs:
           ref: feature/admin-platform-foundation-v1
           path: HandballManagerCore
           persist-credentials: false
+          token: ${{ secrets.CORE_REPOSITORY_TOKEN }}
 
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
