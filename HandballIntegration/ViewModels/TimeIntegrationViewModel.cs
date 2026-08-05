@@ -136,7 +136,7 @@ namespace HandballIntegration.ViewModels
             }
 
             var existingTimeRows = await _http.GetFromJsonAsync<List<TimePlayers>>(
-                $"{_settings.BaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}")
+                $"{_settings.ApiBaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}")
                 ?? new List<TimePlayers>();
 
             if (existingTimeRows.Any(item => item.MatchId == existingMatch.MatchId))
@@ -201,7 +201,7 @@ namespace HandballIntegration.ViewModels
                     SourceRow = row.RowNumber
                 };
 
-                var response = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/TimePlayers", payload);
+                var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload);
                 if (!response.IsSuccessStatusCode)
                 {
                     skippedCount++;
@@ -266,7 +266,7 @@ namespace HandballIntegration.ViewModels
             var normalizedSeason = string.IsNullOrWhiteSpace(season) ? null : season.Trim();
             var normalizedDay = string.IsNullOrWhiteSpace(day) ? null : day.Trim().ToUpperInvariant();
 
-            var requestUrl = $"{_settings.BaseUrl}api/Matches?competitionId=1&pageSize=500";
+            var requestUrl = $"{_settings.ApiBaseUrl}api/Matches?competitionId=1&pageSize=500";
             if (!string.IsNullOrWhiteSpace(normalizedSeason))
             {
                 requestUrl += $"&season={Uri.EscapeDataString(normalizedSeason)}";
@@ -446,7 +446,7 @@ namespace HandballIntegration.ViewModels
                 return null;
             }
 
-            var response = await _http.GetAsync($"{_settings.BaseUrl}api/Players/byfullname/{Uri.EscapeDataString(name)}");
+            var response = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Players/byfullname/{Uri.EscapeDataString(name)}");
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -457,7 +457,7 @@ namespace HandballIntegration.ViewModels
 
         private async Task<List<PlayerListItemDto>> ApiSearchPlayersApprox(string name)
         {
-            var response = await _http.GetAsync($"{_settings.BaseUrl}api/Players/search/{Uri.EscapeDataString(name)}");
+            var response = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Players/search/{Uri.EscapeDataString(name)}");
             if (!response.IsSuccessStatusCode)
             {
                 return new List<PlayerListItemDto>();
@@ -473,7 +473,7 @@ namespace HandballIntegration.ViewModels
                 return null;
             }
 
-            var response = await _http.GetAsync($"{_settings.BaseUrl}teams/by-code/{Uri.EscapeDataString(code)}");
+            var response = await _http.GetAsync($"{_settings.ApiBaseUrl}teams/by-code/{Uri.EscapeDataString(code)}");
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -489,7 +489,7 @@ namespace HandballIntegration.ViewModels
                 return null;
             }
 
-            var response = await _http.GetAsync($"{_settings.BaseUrl}teams/byname/{Uri.EscapeDataString(name)}");
+            var response = await _http.GetAsync($"{_settings.ApiBaseUrl}teams/byname/{Uri.EscapeDataString(name)}");
             if (!response.IsSuccessStatusCode)
             {
                 return null;

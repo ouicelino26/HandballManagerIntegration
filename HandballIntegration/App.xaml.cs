@@ -28,7 +28,9 @@ namespace HandballIntegration
                     services.Configure<ApiSettings>(context.Configuration.GetSection("ApiSettings"));
                     services.AddHttpClient<ApiService>(client =>
                     {
-                        client.BaseAddress = new Uri(context.Configuration["ApiSettings:BaseUrl"]);
+                        client.BaseAddress = new Uri(context.Configuration["ApiSettings:ApiBaseUrl"]!);
+                        client.Timeout = TimeSpan.FromSeconds(
+                            context.Configuration.GetValue("ApiSettings:TimeoutSeconds", 30));
                     });
 
                     services.AddHttpClient();

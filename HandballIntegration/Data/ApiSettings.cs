@@ -4,11 +4,12 @@ using System.Text;
 
 namespace HandballIntegration.Data
 {
-    public class ApiSettings
+    public sealed class ApiSettings
     {
-            public string BaseUrl { get; set; }
-            public string ClientId { get; set; }
-            public string ClientSecret { get; set; }
+            public string ApiBaseUrl { get; set; } = string.Empty;
+            public string ApplicationName { get; set; } = "HandWStat Administration";
+            public string EnvironmentLabel { get; set; } = "Unknown";
+            public int TimeoutSeconds { get; set; } = 30;
          
     }
 }

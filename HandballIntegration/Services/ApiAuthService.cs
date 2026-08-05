@@ -44,7 +44,7 @@ namespace HandballIntegration.Services
 
             try
             {
-                response = await _httpClient.PostAsJsonAsync($"{_settings.BaseUrl}auth/login", request);
+                response = await _httpClient.PostAsJsonAsync($"{_settings.ApiBaseUrl}auth/login", request);
             }
             catch (Exception ex)
             {

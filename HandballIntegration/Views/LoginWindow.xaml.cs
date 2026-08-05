@@ -1,7 +1,5 @@
-using HandballIntegration.Data;
 using HandballIntegration.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,16 +9,12 @@ namespace HandballIntegration.Views
     public partial class LoginWindow : Window
     {
         private readonly IApiAuthService _authService;
-        private readonly ApiSettings _settings;
 
         public LoginWindow()
         {
             InitializeComponent();
 
             _authService = App.Services.GetRequiredService<IApiAuthService>();
-            _settings = App.Services.GetRequiredService<IOptions<ApiSettings>>().Value;
-
-            ApiBaseUrlText.Text = _settings.BaseUrl;
             Loaded += LoginWindow_Loaded;
         }
 

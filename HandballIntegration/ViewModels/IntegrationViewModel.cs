@@ -62,7 +62,7 @@ public partial class IntegrationViewModel : ObservableObject
             Console.WriteLine("vide");
 
         }
-        else if (string.IsNullOrWhiteSpace(_settings.BaseUrl))
+        else if (string.IsNullOrWhiteSpace(_settings.ApiBaseUrl))
         {
             Console.WriteLine("vide");
         }
@@ -234,7 +234,7 @@ public partial class IntegrationViewModel : ObservableObject
         }
 
         file.StatusMessage = "Creation du match...";
-        var respMatch = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/Matches", newMatch);
+        var respMatch = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/Matches", newMatch);
         respMatch.EnsureSuccessStatusCode();
 
         var createdMatch = await respMatch.Content.ReadFromJsonAsync<Match>()
@@ -245,7 +245,7 @@ public partial class IntegrationViewModel : ObservableObject
         {
             preparedEvent.MatchEvent.MatchId = createdMatch.Id;
 
-            var resp = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/MatchEvents", preparedEvent.MatchEvent);
+            var resp = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/MatchEvents", preparedEvent.MatchEvent);
 
             if (!resp.IsSuccessStatusCode)
             {
@@ -340,7 +340,7 @@ public partial class IntegrationViewModel : ObservableObject
             }
 
             var resolvedPlayer = await ResolvePlayerAsync(dto, teamId, teamsFromFile);
-            int? eventId = await ApiResolveIdEvent($"{_settings.BaseUrl}api/Event/", dto.EventId);
+            int? eventId = await ApiResolveIdEvent($"{_settings.ApiBaseUrl}api/Event/", dto.EventId);
             int? attackId = await ApiResolveIdAttack(dto.AttackId);
             int? defenseId = await ApiResolveIdDefense(dto.DefenseId);
 
@@ -497,7 +497,7 @@ public partial class IntegrationViewModel : ObservableObject
 
         string dateValue = expectedMatch.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var matches = await _http.GetFromJsonAsync<List<MatchListItemDto>>(
-            $"{_settings.BaseUrl}api/Matches?competitionId={expectedMatch.CompetitionId}&from={dateValue}&to={dateValue}&pageSize=500")
+            $"{_settings.ApiBaseUrl}api/Matches?competitionId={expectedMatch.CompetitionId}&from={dateValue}&to={dateValue}&pageSize=500")
             ?? new List<MatchListItemDto>();
 
         var candidates = matches.Where(match =>
@@ -526,7 +526,7 @@ public partial class IntegrationViewModel : ObservableObject
     private async Task<List<MatchEvent>> GetExistingMatchEventsAsync(int matchId)
     {
         return await _http.GetFromJsonAsync<List<MatchEvent>>(
-            $"{_settings.BaseUrl}api/MatchEvents?matchId={matchId}")
+            $"{_settings.ApiBaseUrl}api/MatchEvents?matchId={matchId}")
             ?? new List<MatchEvent>();
     }
 
@@ -549,7 +549,7 @@ public partial class IntegrationViewModel : ObservableObject
     private async Task<int?> ApiResolveTeamId(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        var resp = await _http.GetAsync($"{_settings.BaseUrl}teams/byname/{Uri.EscapeDataString(name)}");
+        var resp = await _http.GetAsync($"{_settings.ApiBaseUrl}teams/byname/{Uri.EscapeDataString(name)}");
         
         if (!resp.IsSuccessStatusCode) return null;
         return (await resp.Content.ReadFromJsonAsync<Team>())?.Id;
@@ -574,8 +574,8 @@ public partial class IntegrationViewModel : ObservableObject
 
         foreach (var baseUrl in new[]
         {
-            $"{_settings.BaseUrl}api/Attacks/byname/",
-            $"{_settings.BaseUrl}api/Attacks/"
+            $"{_settings.ApiBaseUrl}api/Attacks/byname/",
+            $"{_settings.ApiBaseUrl}api/Attacks/"
         })
         {
             var encoded = Uri.EscapeDataString(name);
@@ -598,8 +598,8 @@ public partial class IntegrationViewModel : ObservableObject
 
         foreach (var baseUrl in new[]
         {
-            $"{_settings.BaseUrl}api/Defenses/byname/",
-            $"{_settings.BaseUrl}api/Defenses/"
+            $"{_settings.ApiBaseUrl}api/Defenses/byname/",
+            $"{_settings.ApiBaseUrl}api/Defenses/"
         })
         {
             var encoded = Uri.EscapeDataString(name);
@@ -619,7 +619,7 @@ public partial class IntegrationViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
 
-        var resp = await _http.GetAsync($"{_settings.BaseUrl}api/Players/byfullname/{Uri.EscapeDataString(name)}");
+        var resp = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Players/byfullname/{Uri.EscapeDataString(name)}");
 
         if (!resp.IsSuccessStatusCode) return null;
         return await resp.Content.ReadFromJsonAsync<PlayerListItemDto>();
@@ -627,7 +627,7 @@ public partial class IntegrationViewModel : ObservableObject
     private async Task<List<PlayerListItemDto>> ApiSearchPlayersApprox(string name)
     {
         var resp = await _http.GetAsync(
-            $"{_settings.BaseUrl}api/Players/search/{Uri.EscapeDataString(name)}");
+            $"{_settings.ApiBaseUrl}api/Players/search/{Uri.EscapeDataString(name)}");
 
         if (!resp.IsSuccessStatusCode)
             return new List<PlayerListItemDto>();

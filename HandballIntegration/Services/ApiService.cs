@@ -19,7 +19,7 @@ namespace HandballIntegration.Services
         {
             _httpClient = httpClient;
             _authService = authService;
-            _baseUrl = options.Value.BaseUrl;
+            _baseUrl = options.Value.ApiBaseUrl;
         }
 
         public async Task<bool> TestConnectionAsync()

@@ -75,14 +75,15 @@
                                     BorderThickness="1"
                                     CornerRadius="18">
                                 <StackPanel>
-                                    <TextBlock Text="API cible"
-                                               FontSize="12"
-                                               Foreground="#D9E8E2"/>
-                                    <TextBlock x:Name="ApiBaseUrlText"
-                                               Margin="0,6,0,0"
+                                    <TextBlock Text="Session securisee"
                                                FontSize="15"
                                                FontWeight="SemiBold"
                                                Foreground="#FFF9F2"/>
+                                    <TextBlock Margin="0,6,0,0"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Text="L'adresse technique est geree dans les parametres de l'application."
+                                               Foreground="#D9E8E2"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

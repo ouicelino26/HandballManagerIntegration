@@ -42,7 +42,7 @@ namespace HandballIntegration.Services
 
                 while (true)
                 {
-                    var response = await _http.GetAsync($"{_settings.BaseUrl}api/Players?page={page}&pageSize={pageSize}");
+                    var response = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Players?page={page}&pageSize={pageSize}");
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -122,7 +122,7 @@ namespace HandballIntegration.Services
                 _auth.ApplyAuthorizationHeader(_http);
 
                 var response = await _http.PutAsJsonAsync(
-                    $"{_settings.BaseUrl}api/Players/{playerId}",
+                    $"{_settings.ApiBaseUrl}api/Players/{playerId}",
                     request);
 
                 return response.IsSuccessStatusCode;
@@ -144,7 +144,7 @@ namespace HandballIntegration.Services
 
                 _auth.ApplyAuthorizationHeader(_http);
 
-                return await _http.GetFromJsonAsync<List<TeamDto>>($"{_settings.BaseUrl}api/Teams")
+                return await _http.GetFromJsonAsync<List<TeamDto>>($"{_settings.ApiBaseUrl}api/Teams")
                     ?? new List<TeamDto>();
             }
             catch
@@ -165,7 +165,7 @@ namespace HandballIntegration.Services
                 _auth.ApplyAuthorizationHeader(_http);
 
                 var positions = await _http.GetFromJsonAsync<List<LookupItemDto>>(
-                    $"{_settings.BaseUrl}api/Lookups/positions");
+                    $"{_settings.ApiBaseUrl}api/Lookups/positions");
 
                 return positions ?? new List<LookupItemDto>();
             }
@@ -187,7 +187,7 @@ namespace HandballIntegration.Services
                 _auth.ApplyAuthorizationHeader(_http);
 
                 var lookupNationalities = await _http.GetFromJsonAsync<List<LookupItemDto>>(
-                    $"{_settings.BaseUrl}api/Lookups/nationalities");
+                    $"{_settings.ApiBaseUrl}api/Lookups/nationalities");
 
                 if (lookupNationalities?.Any() == true)
                 {
@@ -195,7 +195,7 @@ namespace HandballIntegration.Services
                 }
 
                 var legacyNationalities = await _http.GetFromJsonAsync<List<Nationality>>(
-                    $"{_settings.BaseUrl}api/Nationalities");
+                    $"{_settings.ApiBaseUrl}api/Nationalities");
 
                 return legacyNationalities?
                     .Select(item => new LookupItemDto
@@ -224,7 +224,7 @@ namespace HandballIntegration.Services
 
                 _auth.ApplyAuthorizationHeader(_http);
 
-                var response = await _http.DeleteAsync($"{_settings.BaseUrl}api/Players/{playerId}");
+                var response = await _http.DeleteAsync($"{_settings.ApiBaseUrl}api/Players/{playerId}");
                 return response.IsSuccessStatusCode;
             }
             catch
