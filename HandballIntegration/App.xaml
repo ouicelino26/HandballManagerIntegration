@@ -9,6 +9,14 @@
                 <ui:ThemeResources />
                 <ui:XamlControlsResources />
                 <ResourceDictionary Source="/HandballIntegration;component/Styles/CustomStyles.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Colors.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Typography.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Spacing.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Controls.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Forms.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Tables.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Dialogs.xaml" />
+                <ResourceDictionary Source="/HandballIntegration;component/Themes/Navigation.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
