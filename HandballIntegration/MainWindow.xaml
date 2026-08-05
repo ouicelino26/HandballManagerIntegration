@@ -3,463 +3,140 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.modernwpf.com/2019"
         ui:WindowHelper.UseModernWindowStyle="True"
-        Title="Handball Integration"
-        Width="1380"
-        Height="880"
-        MinWidth="1100"
-        MinHeight="720">
-
+        Title="HandWStat Administration"
+        Width="1440" Height="900" MinWidth="980" MinHeight="700"
+        Background="{StaticResource AppBackgroundBrush}">
     <Window.Resources>
-        <Style x:Key="ShellNavigationListStyle" TargetType="ListBox">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-        </Style>
-
-        <Style x:Key="ShellNavigationItemStyle" TargetType="ListBoxItem">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="ItemBorder"
-                                Background="#12FFFFFF"
-                                BorderBrush="#20FFFFFF"
-                                BorderThickness="1"
-                                CornerRadius="16"
-                                Padding="12">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="#1BFFFFFF"/>
-                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#34FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="#F5F1EA"/>
-                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#F5F1EA"/>
-                                <Setter Property="Foreground" Value="#192823"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="SidebarToggleButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="MinWidth" Value="40"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="#18FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#24FFFFFF"/>
-            <Setter Property="Foreground" Value="#FFF9F2"/>
-        </Style>
-
-        <Style x:Key="SidebarActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Height" Value="44"/>
-            <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="Background" Value="#18FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#24FFFFFF"/>
-            <Setter Property="Foreground" Value="#FFF9F2"/>
-        </Style>
+        <DataTemplate x:Key="NavigationTemplate">
+            <Grid Height="50" ToolTip="{Binding Label}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Width="30" Height="30" CornerRadius="10" Background="#18FFFFFF" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Glyph}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+                    <TextBlock Text="{Binding Description}" Margin="0,2,0,0" FontSize="9" Opacity="0.64" TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
     </Window.Resources>
 
-    <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Canvas IsHitTestVisible="False">
-            <Ellipse Width="320"
-                     Height="320"
-                     Fill="{StaticResource WarmGlowBrush}"
-                     Canvas.Left="-80"
-                     Canvas.Top="-90"/>
-            <Ellipse Width="380"
-                     Height="380"
-                     Fill="#1EDCEFE9"
-                     Canvas.Right="-90"
-                     Canvas.Bottom="-110"/>
-        </Canvas>
+    <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
-        <Grid Margin="18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="272"/>
-                <ColumnDefinition x:Name="SidebarGapColumn" Width="18"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <Border x:Name="SidebarBorder"
-                    Grid.Column="0"
-                    Background="{StaticResource ShellGradientBrush}"
-                    BorderBrush="{StaticResource ShellBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="26"
-                    Padding="18">
+        <Border Grid.Column="0" Margin="10" Padding="14" Background="{StaticResource AdminShellBrush}" CornerRadius="24">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Width" Value="264"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                            <Setter Property="Width" Value="72"/>
+                            <Setter Property="Padding" Value="10"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="Auto"/><RowDefinition Height="10"/><RowDefinition Height="*"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Border Width="38" Height="38" CornerRadius="13" Background="{StaticResource AccentBrush}">
+                        <TextBlock Text="HW" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="{Binding ApplicationName}" Foreground="{StaticResource AdminShellTextBrush}" FontFamily="{StaticResource AdminDisplayFont}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="Centre d'administration" Foreground="#BFD0C9" FontSize="9"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Width="34" Height="34" MinWidth="34" Padding="0" Content="&#x2630;"
+                            Background="#18FFFFFF" BorderBrush="#30FFFFFF" Command="{Binding ToggleSidebarCommand}"
+                            AutomationProperties.Name="Replier ou deplier la navigation"/>
+                </Grid>
 
-                    <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <TextBox Grid.Row="2" Tag="Rechercher un module" Text="{Binding GlobalSearch, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Recherche globale des modules">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource AdminTextBoxStyle}">
+                            <Style.Triggers><DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
 
-                        <StackPanel x:Name="SidebarBrandTextPanel">
-                            <Border Width="104"
-                                    Padding="10,6"
-                                    CornerRadius="12"
-                                    Background="#18FFFFFF"
-                                    BorderBrush="#24FFFFFF"
-                                    BorderThickness="1"
-                                    HorizontalAlignment="Left">
-                                <TextBlock Text="Match ops"
-                                           FontSize="11"
-                                           Foreground="#F8F4EE"
-                                           HorizontalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Margin="0,14,0,0"
-                                       FontSize="28"
-                                       FontWeight="SemiBold"
-                                       Foreground="#FFF9F2"
-                                       Text="Handball Integration"/>
-                            <TextBlock Margin="0,8,0,0"
-                                       FontSize="12"
-                                       Foreground="#D9E8E2"
-                                       Text="Navigation simple et controle rapide."/>
-                        </StackPanel>
+                <ListBox Grid.Row="4" ItemsSource="{Binding NavigationItems}" SelectedItem="{Binding SelectedNavigation, Mode=TwoWay}"
+                         ItemTemplate="{StaticResource NavigationTemplate}" Style="{StaticResource AdminNavigationListStyle}"
+                         ItemContainerStyle="{StaticResource AdminNavigationItemStyle}" Foreground="{StaticResource AdminShellTextBrush}"
+                         AutomationProperties.Name="Modules autorises" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
 
-                        <Button Grid.Column="1"
-                                x:Name="SidebarToggleButton"
-                                Style="{StaticResource SidebarToggleButtonStyle}"
-                                Click="ToggleSidebar_Click">
-                            <TextBlock x:Name="SidebarToggleGlyph"
-                                       Text="&lt;"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Button>
-                    </Grid>
-
-                    <Border Grid.Row="1"
-                            x:Name="SidebarStatusCard"
-                            Margin="0,18,0,16"
-                            Padding="14,12"
-                            CornerRadius="18"
-                            Background="#16FFFFFF"
-                            BorderBrush="#24FFFFFF"
-                            BorderThickness="1">
+                <StackPanel Grid.Row="6">
+                    <Border Padding="10" CornerRadius="12" Background="#12FFFFFF">
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Ellipse Width="10"
-                                     Height="10"
-                                     VerticalAlignment="Center">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="#FF9A8B"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
-                                                <Setter Property="Fill" Value="#9DE0B2"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
-
-                            <StackPanel x:Name="SidebarStatusTextPanel"
-                                        Grid.Column="1"
-                                        Margin="12,0,0,0">
-                                <TextBlock Text="{Binding CurrentUsername, FallbackValue=Session}"
-                                           FontSize="11"
-                                           Foreground="#D9E8E2"/>
-                                <TextBlock FontSize="15"
-                                           FontWeight="SemiBold"
-                                           Foreground="#FFF9F2">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="En attente"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
-                                                    <Setter Property="Text" Value="API locale OK"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Margin="0,4,0,0"
-                                           Text="{Binding CurrentRole, StringFormat=Role : {0}}"
-                                           FontSize="11"
-                                           Foreground="#D9E8E2"/>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Margin="9,0,0,0">
+                                <StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                <TextBlock Text="{Binding ApiStatus}" Foreground="{StaticResource AdminShellTextBrush}" FontSize="10" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Environment}" Foreground="#BFD0C9" FontSize="9"/>
                             </StackPanel>
                         </Grid>
                     </Border>
-
-                    <ScrollViewer Grid.Row="2"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ListBox x:Name="NavigationList"
-                                 Style="{StaticResource ShellNavigationListStyle}"
-                                 ItemContainerStyle="{StaticResource ShellNavigationItemStyle}"
-                                 SelectionChanged="NavigationList_SelectionChanged">
-                            <ListBoxItem Tag="dashboard" IsSelected="True">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="01"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="DashboardNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Dashboard"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="integration">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="02"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="IntegrationNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Integration"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="players">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="03"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="PlayersNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Joueuses"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="pdf">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="04"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="PdfNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="PDF"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="accounts">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="05"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="AccountsNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Comptes"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-                        </ListBox>
-                    </ScrollViewer>
-
-                    <Button Grid.Row="3"
-                            x:Name="LogoutButton"
-                            Margin="0,14,0,0"
-                            Style="{StaticResource SidebarActionButtonStyle}"
-                            Click="LogoutButton_Click">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border Width="28"
-                                    Height="28"
-                                    CornerRadius="10"
-                                    Background="#24FFFFFF"
-                                    HorizontalAlignment="Left">
-                                <TextBlock Text="X"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontWeight="SemiBold"
-                                           Foreground="#FFF9F2"/>
-                            </Border>
-
-                            <StackPanel x:Name="LogoutTextPanel"
-                                        Grid.Column="1"
-                                        Margin="12,0,0,0"
-                                        VerticalAlignment="Center">
-                                <TextBlock Text="Se deconnecter"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Grid>
+                    <Button Margin="0,8,0,0" Height="36" MinWidth="36" Padding="8,0" Content="Deconnexion"
+                            Background="Transparent" BorderBrush="#30FFFFFF" Foreground="{StaticResource AdminShellTextBrush}"
+                            Command="{Binding LogoutCommand}" AutomationProperties.Name="Se deconnecter">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers><DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True"><Setter Property="Content" Value="X"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </Button.Style>
                     </Button>
-                </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions><RowDefinition Height="94"/><RowDefinition Height="*"/><RowDefinition Height="34"/></Grid.RowDefinitions>
+            <Grid Grid.Row="0" Margin="14,10,22,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Breadcrumb}" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding PageTitle}" Margin="0,3,0,0" Style="{StaticResource AdminTitleTextStyle}"/>
+                    <TextBlock Text="{Binding PageSubtitle}" Margin="0,2,0,0" Foreground="{StaticResource SecondaryTextBrush}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <Border Grid.Column="1" Padding="12,8" CornerRadius="13" Background="{StaticResource AccentAltSoftBrush}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/><TextBlock Text="{Binding ApiStatus}" Margin="7,0,0,0" FontWeight="SemiBold" Foreground="{StaticResource SuccessBrush}"/></StackPanel>
+                </Border>
+                <Border Grid.Column="3" Padding="12,8" CornerRadius="14" Background="{StaticResource ElevatedSurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="32" Height="32" CornerRadius="11" Background="{StaticResource AccentSoftBrush}"><TextBlock Text="{Binding UserInitial}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/></Border>
+                        <StackPanel Margin="9,0,0,0" VerticalAlignment="Center"><TextBlock Text="{Binding Username}" FontWeight="SemiBold" FontSize="11"/><TextBlock Text="{Binding Role}" Margin="0,2,0,0" FontSize="9" Foreground="{StaticResource SecondaryTextBrush}"/></StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="1" Margin="14,6,22,6" Background="{StaticResource ContentSurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="22" ClipToBounds="True">
+                <ContentControl Content="{Binding CurrentModule}" AutomationProperties.Name="Contenu du module actif"/>
             </Border>
 
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="16"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <Border Grid.Row="0"
-                        Style="{StaticResource SurfaceCardStyle}"
-                        Background="#FFF8F0"
-                        Padding="18">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel>
-                            <TextBlock x:Name="ShellSectionText"
-                                       Style="{StaticResource EyebrowTextStyle}"
-                                       Text="Vue rapide"/>
-                            <TextBlock x:Name="ShellTitleText"
-                                       Margin="0,6,0,0"
-                                       FontSize="28"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource PrimaryTextBrush}"
-                                       Text="Dashboard"/>
-                            <TextBlock x:Name="ShellSubtitleText"
-                                       Margin="0,8,0,0"
-                                       Style="{StaticResource BodyTextStyle}"
-                                       Text="Les informations utiles, sans surcharge."/>
-                        </StackPanel>
-
-                        <Border Grid.Column="1"
-                                Padding="14,10"
-                                CornerRadius="16"
-                                Background="{StaticResource SoftNeutralBrush}"
-                                VerticalAlignment="Center">
-                            <TextBlock FontWeight="SemiBold"
-                                       Foreground="{StaticResource PrimaryTextBrush}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="API en attente"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
-                                                <Setter Property="Text" Value="API locale"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Border>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Row="2"
-                        Style="{StaticResource SurfaceCardStyle}"
-                        Padding="0"
-                        Background="{StaticResource ContentSurfaceBrush}">
-                    <Frame x:Name="ContentFrame"
-                           NavigationUIVisibility="Hidden"
-                           Background="Transparent"/>
-                </Border>
+            <Grid Grid.Row="2" Margin="18,0,26,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Notice}" VerticalAlignment="Center" FontSize="9" Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="9" Foreground="{StaticResource MutedTextBrush}">
+                    <Run Text="Client "/><Run Text="{Binding ClientVersion}"/><Run Text="  |  API "/><Run Text="{Binding ApiVersion}"/>
+                </TextBlock>
             </Grid>
         </Grid>
     </Grid>

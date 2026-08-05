@@ -1,0 +1,51 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="Auto"/><RowDefinition Height="16"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <components:AdminPageHeader Eyebrow="CONFIGURATION REDIGEE" Title="{Binding Title}" Subtitle="{Binding Subtitle}"/>
+            <views:AdminStateView Grid.Row="2"/>
+            <UniformGrid Grid.Row="4" Columns="2">
+                <Border Style="{StaticResource AdminCardStyle}" Margin="0,0,8,8">
+                    <StackPanel>
+                        <TextBlock Text="Environnement" Style="{StaticResource EyebrowTextStyle}"/>
+                        <TextBlock Text="{Binding Environment}" Margin="0,8,0,0" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="Nom d'hote API" Margin="0,18,0,0" Style="{StaticResource EyebrowTextStyle}"/>
+                        <TextBlock Text="{Binding ApiEndpoint}" Margin="0,6,0,0" FontFamily="Consolas"/>
+                        <TextBlock Text="Delai reseau" Margin="0,18,0,0" Style="{StaticResource EyebrowTextStyle}"/>
+                        <TextBlock Text="{Binding TimeoutSeconds, StringFormat={}{0} secondes}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource AdminCardStyle}" Margin="8,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="Versions serveur" Style="{StaticResource EyebrowTextStyle}"/>
+                        <TextBlock Text="{Binding ApiVersion, StringFormat=API {0}}" Margin="0,8,0,0" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="{Binding DatabaseVersion, StringFormat=Base {0}}" Margin="0,6,0,0" FontSize="16"/>
+                        <Border Margin="0,18,0,0" Padding="12" CornerRadius="12" Background="{StaticResource AccentAltSoftBrush}">
+                            <TextBlock Text="Les diagnostics ne montrent ni token, ni secret, ni chaine de connexion."
+                                       TextWrapping="Wrap" Foreground="{StaticResource SuccessBrush}"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource AdminCardStyle}" Margin="0,8,8,0">
+                    <StackPanel>
+                        <TextBlock Text="Maintenance" Style="{StaticResource SectionTitleStyle}"/>
+                        <components:StatusBadge Status="{Binding MaintenanceAvailability.Status}" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+                        <TextBlock Text="{Binding MaintenanceAvailability.Message}" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{StaticResource SecondaryTextBrush}"/>
+                        <TextBlock Text="Aucun editeur SQL libre n'est propose." Margin="0,14,0,0" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource AdminCardStyle}" Margin="8,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Securite client" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="Le jeton de session reste uniquement en memoire. Les erreurs sont traduites en messages operateur et les identifiants de correlation servent au support."
+                                   Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{StaticResource SecondaryTextBrush}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

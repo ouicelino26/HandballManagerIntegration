@@ -34,7 +34,7 @@ namespace HandballIntegration.Services
 
             try
             {
-                var response = await _http.GetAsync($"{_settings.BaseUrl}api/Users");
+                var response = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Users");
                 if (!response.IsSuccessStatusCode)
                 {
                     return new UsersQueryResult
@@ -76,7 +76,7 @@ namespace HandballIntegration.Services
 
             try
             {
-                var response = await _http.PostAsJsonAsync($"{_settings.BaseUrl}api/Users", request);
+                var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/Users", request);
                 if (!response.IsSuccessStatusCode)
                 {
                     return new UserOperationResult

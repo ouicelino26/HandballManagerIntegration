@@ -223,6 +223,11 @@ _pkginfo.txt
 *.appxbundle
 *.appxupload
 
+# Generated delivery archives must never be committed.
+*.zip
+*.7z
+*.rar
+
 # Visual Studio cache files
 # files ending in .cache can be ignored
 *.[Cc]ache

@@ -1,0 +1,62 @@
+name: Client foundation CI
+
+on:
+  push:
+    branches:
+      - feature/handwstat-admin-platform-v1
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-scan:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Integration
+        uses: actions/checkout@v4
+        with:
+          path: HandballIntegration
+          persist-credentials: false
+
+      - name: Validate private Core access
+        shell: powershell
+        env:
+          CORE_REPOSITORY_TOKEN: ${{ secrets.CORE_REPOSITORY_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CORE_REPOSITORY_TOKEN)) {
+            throw "Repository secret CORE_REPOSITORY_TOKEN is required to read the private Core dependency."
+          }
+
+      - name: Checkout Core dependency
+        uses: actions/checkout@v4
+        with:
+          repository: ouicelino26/HandballManagerMaui
+          ref: feature/admin-platform-foundation-v1
+          path: HandballManagerCore
+          persist-credentials: false
+          token: ${{ secrets.CORE_REPOSITORY_TOKEN }}
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        working-directory: HandballIntegration
+        run: dotnet restore HandballManagerIntegration.sln
+
+      - name: Build Release
+        working-directory: HandballIntegration
+        run: dotnet build HandballManagerIntegration.sln -c Release --no-restore
+
+      - name: Run client tests
+        working-directory: HandballIntegration
+        run: dotnet test HandballManagerIntegration.Tests/HandballManagerIntegration.Tests.csproj -c Release --no-build
+
+      - name: Scan tracked files for secrets and archives
+        working-directory: HandballIntegration
+        shell: powershell
+        run: ./scripts/scan-secrets.ps1

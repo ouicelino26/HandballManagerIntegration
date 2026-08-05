@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:Double x:Key="SpacingXS">4</sys:Double>
+    <sys:Double x:Key="SpacingSM">8</sys:Double>
+    <sys:Double x:Key="SpacingMD">16</sys:Double>
+    <sys:Double x:Key="SpacingLG">24</sys:Double>
+    <sys:Double x:Key="SpacingXL">32</sys:Double>
+    <sys:Double x:Key="SpacingXXL">48</sys:Double>
+    <sys:Double x:Key="PagePadding">24</sys:Double>
+    <sys:Double x:Key="CardPadding">16</sys:Double>
+    <sys:Double x:Key="SectionGap">24</sys:Double>
+    <sys:Double x:Key="ItemGap">8</sys:Double>
+    <CornerRadius x:Key="RadiusSM">8</CornerRadius>
+    <CornerRadius x:Key="RadiusMD">14</CornerRadius>
+    <CornerRadius x:Key="RadiusLG">22</CornerRadius>
+    <CornerRadius x:Key="RadiusXL">30</CornerRadius>
+</ResourceDictionary>
