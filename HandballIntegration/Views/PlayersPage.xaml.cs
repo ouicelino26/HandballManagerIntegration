@@ -60,7 +60,7 @@ namespace HandballIntegration.Views
                 (player.FullName ?? string.Empty).ToLowerInvariant().Contains(query) ||
                 (player.TeamName ?? string.Empty).ToLowerInvariant().Contains(query) ||
                 (player.PositionName ?? string.Empty).ToLowerInvariant().Contains(query) ||
-                (player.CountryName ?? string.Empty).ToLowerInvariant().Contains(query))
+                (player.Nationality ?? string.Empty).ToLowerInvariant().Contains(query))
                 .ToList();
 
             PlayersGrid.ItemsSource = filtered;
@@ -100,7 +100,7 @@ namespace HandballIntegration.Views
                 Number = player.Number,
                 TeamId = player.TeamId,
                 PositionId = player.PositionId,
-                NationalityId = FindNationalityId(player.CountryName),
+                NationalityId = FindNationalityId(player.Nationality),
                 IsActive = player.IsActive,
                 Teams = _teams,
                 Positions = _positions,
@@ -148,7 +148,7 @@ namespace HandballIntegration.Views
             player.Age = editable.Age;
             player.Number = editable.Number;
             player.TeamId = editable.TeamId;
-            player.TeamName = _teams.FirstOrDefault(team => team.Id == editable.TeamId)?.Name;
+            player.TeamName = _teams.FirstOrDefault(team => team.TeamId == editable.TeamId)?.TeamName;
             player.PositionId = editable.PositionId;
             player.PositionName = _positions.FirstOrDefault(position => position.Id == editable.PositionId)?.Name;
             player.Nationality = _nationalities.FirstOrDefault(nationality => nationality.Id == editable.NationalityId)?.Name;

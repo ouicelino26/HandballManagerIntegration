@@ -25,6 +25,7 @@ public interface IAdminApiTransport
 public interface IAdminDashboardApiClient
 {
     Task<AdminSystemVersion> GetVersionAsync(CancellationToken cancellationToken = default);
+    Task<AdminDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IAdminImportApiClient
@@ -44,7 +45,7 @@ public interface IAdminImportApiClient
 
 public interface IAdminMatchApiClient
 {
-    Task<AdminPageResult<MatchListItemDto>> GetMatchesAsync(
+    Task<AdminPageResult<AdminMatchListItemDto>> GetMatchesAsync(
         int page,
         int pageSize,
         string? season,
@@ -52,6 +53,7 @@ public interface IAdminMatchApiClient
         int? teamId,
         DateTime? from,
         DateTime? to,
+        string? search = null,
         CancellationToken cancellationToken = default);
     Task<AdminHttpResult<AdminMatch>> GetMatchAsync(int matchId, CancellationToken cancellationToken = default);
     Task<AdminHttpResult<AdminMatch>> UpdateMatchAsync(
@@ -74,7 +76,11 @@ public interface IAdminMatchApiClient
 
 public interface IAdminEventApiClient
 {
-    Task<IReadOnlyList<LegacyMatchEvent>> GetEventsAsync(int matchId, CancellationToken cancellationToken = default);
+    Task<AdminPageResult<AdminEventListItemDto>> GetEventsAsync(
+        int matchId,
+        int page = 1,
+        int pageSize = 100,
+        CancellationToken cancellationToken = default);
     Task<AdminHttpResult<AdminMatchEvent>> GetEventAsync(
         int matchId,
         int eventId,
@@ -122,8 +128,12 @@ public interface IAdminPlayerApiClient
 
 public interface IAdminTeamApiClient
 {
-    Task<IReadOnlyList<TeamDto>> GetTeamsAsync(CancellationToken cancellationToken = default);
-    Task<TeamDto> GetTeamAsync(int teamId, CancellationToken cancellationToken = default);
+    Task<AdminPageResult<AdminTeamListItemDto>> GetTeamsAsync(
+        int page = 1,
+        int pageSize = 100,
+        string? search = null,
+        CancellationToken cancellationToken = default);
+    Task<AdminTeamListItemDto> GetTeamAsync(int teamId, CancellationToken cancellationToken = default);
     AdminApiAvailability WriteAvailability { get; }
 }
 
@@ -161,9 +171,13 @@ public interface IAdminMaintenanceApiClient
 
 public interface IAdminUsersApiClient
 {
-    Task<IReadOnlyList<AdminUser>> GetUsersAsync(CancellationToken cancellationToken = default);
-    Task<AdminUser> CreateUserAsync(AdminUserCreate request, CancellationToken cancellationToken = default);
-    Task<AdminUser> UpdateUserAsync(
+    Task<AdminPageResult<AdminUserDto>> GetUsersAsync(
+        int page = 1,
+        int pageSize = 100,
+        string? search = null,
+        CancellationToken cancellationToken = default);
+    Task<AdminUserDto> CreateUserAsync(AdminUserCreate request, CancellationToken cancellationToken = default);
+    Task<AdminUserDto> UpdateUserAsync(
         int userId,
         AdminUserUpdate request,
         CancellationToken cancellationToken = default);

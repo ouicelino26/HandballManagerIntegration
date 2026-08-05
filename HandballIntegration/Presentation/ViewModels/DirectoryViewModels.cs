@@ -17,7 +17,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
     private CancellationTokenSource? _searchSource;
     private PlayerListItemDto? _selectedPlayer;
     private string _search = string.Empty;
-    private TeamDto? _filterTeam;
+    private AdminTeamListItemDto? _filterTeam;
     private bool? _activeOnly = true;
     private int _page = 1;
     private int _pageSize = 25;
@@ -26,7 +26,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
     private string _lastName = string.Empty;
     private DateTime? _birthday;
     private int? _age;
-    private TeamDto? _editTeam;
+    private AdminTeamListItemDto? _editTeam;
     private LookupItemDto? _editPosition;
     private LookupItemDto? _editNationality;
     private int? _number;
@@ -54,7 +54,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
     }
 
     public ObservableCollection<PlayerListItemDto> Players { get; } = [];
-    public ObservableCollection<TeamDto> Teams { get; } = [];
+    public ObservableCollection<AdminTeamListItemDto> Teams { get; } = [];
     public ObservableCollection<LookupItemDto> Positions { get; } = [];
     public ObservableCollection<LookupItemDto> Nationalities { get; } = [];
     public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100];
@@ -104,7 +104,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
         }
     }
 
-    public TeamDto? FilterTeam { get => _filterTeam; set => SetProperty(ref _filterTeam, value); }
+    public AdminTeamListItemDto? FilterTeam { get => _filterTeam; set => SetProperty(ref _filterTeam, value); }
     public bool? ActiveOnly { get => _activeOnly; set => SetProperty(ref _activeOnly, value); }
 
     public int Page
@@ -123,7 +123,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
     public string LastName { get => _lastName; set { SetProperty(ref _lastName, value); SavePlayerCommand.NotifyCanExecuteChanged(); } }
     public DateTime? Birthday { get => _birthday; set => SetProperty(ref _birthday, value); }
     public int? Age { get => _age; set => SetProperty(ref _age, value); }
-    public TeamDto? EditTeam { get => _editTeam; set => SetProperty(ref _editTeam, value); }
+    public AdminTeamListItemDto? EditTeam { get => _editTeam; set => SetProperty(ref _editTeam, value); }
     public LookupItemDto? EditPosition { get => _editPosition; set => SetProperty(ref _editPosition, value); }
     public LookupItemDto? EditNationality { get => _editNationality; set => SetProperty(ref _editNationality, value); }
     public int? Number { get => _number; set => SetProperty(ref _number, value); }
@@ -143,16 +143,16 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
             FilterTeam?.TeamId,
             ActiveOnly,
             cancellationToken);
-        var teamsTask = _teamClient.GetTeamsAsync(cancellationToken);
+        var teamsTask = _teamClient.GetTeamsAsync(cancellationToken: cancellationToken);
         var positionsTask = _referenceClient.GetPositionsAsync(cancellationToken);
         var nationalitiesTask = _referenceClient.GetNationalitiesAsync(cancellationToken);
         var players = await playersTask;
-        var teams = await teamsTask;
+        var teamsPage = await teamsTask;
         var positions = await positionsTask;
         var nationalities = await nationalitiesTask;
 
         Replace(Players, players.Items);
-        Replace(Teams, teams);
+        Replace(Teams, teamsPage.Items);
         Replace(Positions, positions);
         Replace(Nationalities, nationalities);
         NextPageCommand.NotifyCanExecuteChanged();
@@ -338,14 +338,14 @@ public sealed class TeamsAdminViewModel(IAdminTeamApiClient apiClient) : AdminPa
     "Equipes",
     "Consultez les equipes et leurs effectifs exposes par l'API.")
 {
-    public ObservableCollection<TeamDto> Teams { get; } = [];
+    public ObservableCollection<AdminTeamListItemDto> Teams { get; } = [];
     public AdminApiAvailability WriteAvailability => apiClient.WriteAvailability;
 
     protected override async Task<AdminPageState> LoadAsync(CancellationToken cancellationToken)
     {
-        var teams = await apiClient.GetTeamsAsync(cancellationToken);
+        var result = await apiClient.GetTeamsAsync(cancellationToken: cancellationToken);
         Teams.Clear();
-        foreach (var team in teams.OrderBy(item => item.TeamName))
+        foreach (var team in result.Items.OrderBy(item => item.TeamName))
         {
             Teams.Add(team);
         }
@@ -479,7 +479,7 @@ public sealed class UsersAdminViewModel : AdminPageViewModelBase
 {
     private readonly IAdminUsersApiClient _apiClient;
     private readonly IAdminCapabilitiesService _capabilities;
-    private AdminUser? _selectedUser;
+    private AdminUserDto? _selectedUser;
     private string _username = string.Empty;
     private string _email = string.Empty;
     private string _password = string.Empty;
@@ -500,12 +500,12 @@ public sealed class UsersAdminViewModel : AdminPageViewModelBase
         CancelCommand = new RelayCommand(Cancel);
     }
 
-    public ObservableCollection<AdminUser> Users { get; } = [];
+    public ObservableCollection<AdminUserDto> Users { get; } = [];
     public IReadOnlyList<string> Roles { get; } = ["Consultation", "Admin"];
     public IRelayCommand NewUserCommand { get; }
     public IAsyncRelayCommand SaveUserCommand { get; }
     public IRelayCommand CancelCommand { get; }
-    public AdminUser? SelectedUser
+    public AdminUserDto? SelectedUser
     {
         get => _selectedUser;
         set
@@ -520,7 +520,7 @@ public sealed class UsersAdminViewModel : AdminPageViewModelBase
             Email = value.Email ?? string.Empty;
             Password = string.Empty;
             Role = value.Role;
-            IsActive = value.IsActive;
+            IsActive = string.Equals(value.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) || value.Status is null;
             OnPropertyChanged(nameof(IsEditorVisible));
             SaveUserCommand.NotifyCanExecuteChanged();
         }
@@ -536,16 +536,16 @@ public sealed class UsersAdminViewModel : AdminPageViewModelBase
 
     protected override async Task<AdminPageState> LoadAsync(CancellationToken cancellationToken)
     {
-        var users = await _apiClient.GetUsersAsync(cancellationToken);
+        var result = await _apiClient.GetUsersAsync(cancellationToken: cancellationToken);
         Users.Clear();
-        foreach (var user in users)
+        foreach (var user in result.Items)
         {
             Users.Add(user);
         }
 
         return Users.Count == 0
             ? AdminPageState.Empty("Aucun compte n'est disponible.")
-            : AdminPageState.Partial("Les comptes sont gerables via les routes legacy; l'audit admin V2 reste incomplet.");
+            : AdminPageState.Loaded("Les comptes sont disponibles via les routes v2 admin.");
     }
 
     private bool CanManage() => _capabilities.Has(AdminPermissionNames.UsersManage);
@@ -595,14 +595,14 @@ public sealed class UsersAdminViewModel : AdminPageViewModelBase
             }
 
             Cancel();
-            var users = await _apiClient.GetUsersAsync(cancellationToken);
+            var refreshed = await _apiClient.GetUsersAsync(cancellationToken: cancellationToken);
             Users.Clear();
-            foreach (var user in users)
+            foreach (var user in refreshed.Items)
             {
                 Users.Add(user);
             }
 
-            return AdminPageState.Partial("Compte enregistre. Le contrat legacy ne fournit pas encore un audit V2 complet.");
+            return AdminPageState.Loaded("Compte enregistre via la route v2 admin.");
         });
     }
 

@@ -154,8 +154,8 @@ namespace HandballIntegration.ViewModels
             var teamsForAddWindow = teams
                 .Select(team => new IntegrationViewModel.TeamLight
                 {
-                    Id = team.Team.Id,
-                    Name = team.Team.Name ?? team.Team.Code ?? "Equipe"
+                    Id = team.Team.TeamId,
+                    Name = team.Team.TeamName ?? team.Team.TeamCode ?? "Equipe"
                 })
                 .ToList();
 
@@ -172,7 +172,7 @@ namespace HandballIntegration.ViewModels
                 var sectionKey = NormalizeTeamKey(row.TeamLabel);
                 if (teamMappings.TryGetValue(sectionKey, out var mappedTeam))
                 {
-                    expectedTeamId = mappedTeam.Team.Id;
+                    expectedTeamId = mappedTeam.Team.TeamId;
                 }
 
                 var player = await ResolvePlayerAsync(row.PlayerName, expectedTeamId, teamsForAddWindow);
@@ -230,7 +230,7 @@ namespace HandballIntegration.ViewModels
             foreach (var code in folderTeamCodes)
             {
                 var team = await ApiResolveTeamByCodeAsync(code);
-                if (team == null || teams.Any(item => item.Team.Id == team.Id))
+                if (team == null || teams.Any(item => item.Team.TeamId == team.TeamId))
                 {
                     continue;
                 }
@@ -246,7 +246,7 @@ namespace HandballIntegration.ViewModels
             foreach (var name in fallbackNames)
             {
                 var team = await ApiResolveTeamByNameAsync(name);
-                if (team == null || teams.Any(item => item.Team.Id == team.Id))
+                if (team == null || teams.Any(item => item.Team.TeamId == team.TeamId))
                 {
                     continue;
                 }
@@ -280,7 +280,7 @@ namespace HandballIntegration.ViewModels
             var matches = await _http.GetFromJsonAsync<List<MatchListItemDto>>(requestUrl)
                 ?? new List<MatchListItemDto>();
 
-            var teamIds = teams.Select(team => team.Team.Id).OrderBy(id => id).ToArray();
+            var teamIds = teams.Select(team => team.Team.TeamId).OrderBy(id => id).ToArray();
 
             var candidates = matches.Where(match =>
                 string.Equals((match.Season ?? string.Empty).Trim(), normalizedSeason ?? string.Empty, StringComparison.OrdinalIgnoreCase)

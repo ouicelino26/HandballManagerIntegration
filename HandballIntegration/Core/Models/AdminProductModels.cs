@@ -332,3 +332,118 @@ public sealed record AdminApiAvailability(
     string Status,
     string RequiredRoute,
     string Message);
+
+public sealed record AdminMatchListItemDto(
+    int MatchId,
+    int? CompetitionId,
+    string? CompetitionName,
+    DateTime? Date,
+    int? Team1Id,
+    string? Team1Name,
+    int? Team2Id,
+    string? Team2Name,
+    int? Team1Score,
+    int? Team2Score,
+    string? Season,
+    string? Day,
+    int? Year,
+    string? State,
+    int EventCount,
+    long Version,
+    string ETag,
+    DateTime UpdatedAtUtc);
+
+public sealed record AdminEventListItemDto(
+    int Id,
+    int MatchId,
+    int? PlayerId,
+    string? PlayerName,
+    int? TeamId,
+    string? TeamName,
+    int EventId,
+    string? EventName,
+    TimeSpan? Time,
+    string? Period,
+    int? TeamScore1,
+    int? TeamScore2,
+    string? Action,
+    bool? Goal,
+    bool IsDeleted,
+    long Version,
+    string ETag,
+    DateTime UpdatedAtUtc)
+{
+    /// <summary>Alias used by the events DataGrid (MiTemps binding).</summary>
+    public string? MiTemps => Period;
+}
+
+public sealed record AdminTeamListItemDto(
+    int Id,
+    string Name,
+    string Code,
+    int PlayerCount,
+    int MatchCount,
+    long Version,
+    string ETag)
+{
+    /// <summary>Alias used by the teams DataGrid (TeamName binding) and ViewModels.</summary>
+    public string TeamName => Name;
+    /// <summary>Alias used by the teams DataGrid (TeamCode binding).</summary>
+    public string TeamCode => Code;
+    /// <summary>Alias for Id, for compatibility with ViewModels that used TeamDto.TeamId.</summary>
+    public int TeamId => Id;
+}
+
+public sealed record AdminUserDto(
+    int Id,
+    string Username,
+    string? Email,
+    string Role,
+    string Status,
+    DateTime? LastLoginAt,
+    DateTime CreatedAt,
+    DateTime UpdatedAtUtc)
+{
+    /// <summary>Derived from Status for DataGrid binding compatibility.</summary>
+    public bool IsActive => string.Equals(Status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+}
+
+public sealed record AdminDashboardDto(
+    int RecentImports,
+    int FailedImports,
+    long MatchesTotal,
+    long EventsTotal,
+    long PlayersTotal,
+    long TeamsTotal,
+    string ApiVersion,
+    DateTime Timestamp);
+
+public sealed record AdminImportExecutionListItemDto(
+    Guid Id,
+    string Status,
+    DateTime StartedAtUtc,
+    DateTime? CompletedAtUtc,
+    int RowsProcessed,
+    int RowsImported,
+    int RowsFailed,
+    string? UserId,
+    string? FileName,
+    string? Sha256,
+    string? ErrorMessage);
+
+public sealed record AdminReferenceItemDto(
+    int Id,
+    string? Name,
+    string? Code,
+    int ItemCount);
+
+public sealed record AdminCatalogDto(
+    string CatalogKey,
+    string DisplayName,
+    int ItemCount);
+
+public sealed record AdminPageRequest(
+    int Page = 1,
+    int PageSize = 50,
+    string? Search = null,
+    string? OrderBy = null);

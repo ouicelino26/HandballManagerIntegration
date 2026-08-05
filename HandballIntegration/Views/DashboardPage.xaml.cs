@@ -74,7 +74,7 @@ namespace HandballIntegration.Views
                 .Count()
                 .ToString();
             CountriesCountText.Text = players
-                .Select(p => p.CountryName)
+                .Select(p => p.Nationality)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct()
                 .Count()
@@ -93,7 +93,7 @@ namespace HandballIntegration.Views
                     Joueuse = p.FullName,
                     Equipe = string.IsNullOrWhiteSpace(p.TeamName) ? "Non renseignee" : p.TeamName,
                     Poste = string.IsNullOrWhiteSpace(p.PositionName) ? "Non renseigne" : p.PositionName,
-                    Pays = string.IsNullOrWhiteSpace(p.CountryName) ? "Non renseigne" : p.CountryName
+                    Pays = string.IsNullOrWhiteSpace(p.Nationality) ? "Non renseigne" : p.Nationality
                 })
                 .ToList();
         }

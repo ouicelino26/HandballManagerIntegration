@@ -327,7 +327,7 @@ public partial class IntegrationViewModel : ObservableObject
                 || IsNearHalfBoundary(parsedTime)
                 || IsNearHalfBoundary(prevTimeForLog);
 
-            if (dto.Number >= 100)
+            if (int.TryParse(dto.Number, out var dtoNumber) && dtoNumber >= 100)
             {
                 LogSkip("Number>=100", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
                 continue;

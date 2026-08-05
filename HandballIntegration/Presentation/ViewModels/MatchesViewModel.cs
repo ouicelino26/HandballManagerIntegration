@@ -15,9 +15,9 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     private readonly IAdminTeamApiClient _teamClient;
     private readonly IAdminReferenceDataApiClient _referenceClient;
     private readonly IAdminCapabilitiesService _capabilities;
-    private MatchListItemDto? _selectedMatch;
+    private AdminMatchListItemDto? _selectedMatch;
     private AdminMatch? _detail;
-    private LegacyMatchEvent? _selectedEvent;
+    private AdminEventListItemDto? _selectedEvent;
     private AdminMatchEvent? _eventDetail;
     private AdminDeletionImpact? _impact;
     private AdminDeletionImpact? _eventImpact;
@@ -25,12 +25,12 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     private int _pageSize = 25;
     private string? _season;
     private string? _day;
-    private TeamDto? _filterTeam;
+    private AdminTeamListItemDto? _filterTeam;
     private DateTime? _from;
     private DateTime? _to;
     private CompetitionDto? _editCompetition;
-    private TeamDto? _editHomeTeam;
-    private TeamDto? _editAwayTeam;
+    private AdminTeamListItemDto? _editHomeTeam;
+    private AdminTeamListItemDto? _editAwayTeam;
     private DateTime? _editDate;
     private string? _editSeason;
     private string? _editDay;
@@ -42,7 +42,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     private string _eventReason = string.Empty;
     private string _eventConfirmationPhrase = string.Empty;
     private LookupItemDto? _editEventType;
-    private TeamDto? _editEventTeam;
+    private AdminTeamListItemDto? _editEventTeam;
     private string _editEventTime = string.Empty;
     private string? _editEventPeriod;
     private int? _editEventHomeScore;
@@ -80,9 +80,9 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
         ClearFiltersCommand = new AsyncRelayCommand(ClearFiltersAsync, () => !IsLoading);
     }
 
-    public ObservableCollection<MatchListItemDto> Matches { get; } = [];
-    public ObservableCollection<LegacyMatchEvent> Events { get; } = [];
-    public ObservableCollection<TeamDto> Teams { get; } = [];
+    public ObservableCollection<AdminMatchListItemDto> Matches { get; } = [];
+    public ObservableCollection<AdminEventListItemDto> Events { get; } = [];
+    public ObservableCollection<AdminTeamListItemDto> Teams { get; } = [];
     public ObservableCollection<CompetitionDto> Competitions { get; } = [];
     public ObservableCollection<LookupItemDto> EventTypes { get; } = [];
     public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100];
@@ -101,7 +101,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     public IAsyncRelayCommand ApplyFiltersCommand { get; }
     public IAsyncRelayCommand ClearFiltersCommand { get; }
 
-    public MatchListItemDto? SelectedMatch
+    public AdminMatchListItemDto? SelectedMatch
     {
         get => _selectedMatch;
         set
@@ -124,7 +124,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
 
     public bool HasDetail => Detail is not null;
 
-    public LegacyMatchEvent? SelectedEvent
+    public AdminEventListItemDto? SelectedEvent
     {
         get => _selectedEvent;
         set
@@ -195,7 +195,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
         set => SetProperty(ref _day, value);
     }
 
-    public TeamDto? FilterTeam
+    public AdminTeamListItemDto? FilterTeam
     {
         get => _filterTeam;
         set => SetProperty(ref _filterTeam, value);
@@ -223,7 +223,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
         }
     }
 
-    public TeamDto? EditHomeTeam
+    public AdminTeamListItemDto? EditHomeTeam
     {
         get => _editHomeTeam;
         set
@@ -233,7 +233,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
         }
     }
 
-    public TeamDto? EditAwayTeam
+    public AdminTeamListItemDto? EditAwayTeam
     {
         get => _editAwayTeam;
         set
@@ -300,7 +300,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     }
 
     public LookupItemDto? EditEventType { get => _editEventType; set { SetProperty(ref _editEventType, value); SaveEventCommand.NotifyCanExecuteChanged(); } }
-    public TeamDto? EditEventTeam { get => _editEventTeam; set => SetProperty(ref _editEventTeam, value); }
+    public AdminTeamListItemDto? EditEventTeam { get => _editEventTeam; set => SetProperty(ref _editEventTeam, value); }
     public string EditEventTime { get => _editEventTime; set { SetProperty(ref _editEventTime, value); SaveEventCommand.NotifyCanExecuteChanged(); } }
     public string? EditEventPeriod { get => _editEventPeriod; set => SetProperty(ref _editEventPeriod, value); }
     public int? EditEventHomeScore { get => _editEventHomeScore; set { SetProperty(ref _editEventHomeScore, value); SaveEventCommand.NotifyCanExecuteChanged(); } }
@@ -321,12 +321,12 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
             FilterTeam?.TeamId,
             From,
             To,
-            cancellationToken);
-        var teamsTask = _teamClient.GetTeamsAsync(cancellationToken);
+            cancellationToken: cancellationToken);
+        var teamsTask = _teamClient.GetTeamsAsync(cancellationToken: cancellationToken);
         var competitionsTask = _referenceClient.GetCompetitionsAsync(cancellationToken);
         var eventTypesTask = _referenceClient.GetEventsAsync(cancellationToken);
         var matches = await matchesTask;
-        var teams = await teamsTask;
+        var teamsPage = await teamsTask;
         var competitions = await competitionsTask;
         var eventTypes = await eventTypesTask;
 
@@ -336,7 +336,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
             Matches.Add(match);
         }
 
-        Replace(Teams, teams);
+        Replace(Teams, teamsPage.Items);
         Replace(Competitions, competitions);
         Replace(EventTypes, eventTypes);
         NextPageCommand.NotifyCanExecuteChanged();
@@ -372,8 +372,8 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
             Events.Clear();
             if (_capabilities.Has(AdminPermissionNames.EventsRead))
             {
-                var events = await _eventClient.GetEventsAsync(Detail.MatchId, cancellationToken);
-                Replace(Events, events);
+                var eventsPage = await _eventClient.GetEventsAsync(Detail.MatchId, cancellationToken: cancellationToken);
+                Replace(Events, eventsPage.Items);
             }
 
             EventDetail = null;

@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using HandballIntegration.Core.Abstractions;
 using HandballIntegration.Core.Models;
@@ -13,6 +12,9 @@ public sealed class AdminDashboardApiClient(IAdminApiTransport transport) : IAdm
 {
     public async Task<AdminSystemVersion> GetVersionAsync(CancellationToken cancellationToken = default) =>
         (await transport.GetAsync<AdminSystemVersion>("api/system/version", cancellationToken)).Value;
+
+    public async Task<AdminDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default) =>
+        (await transport.GetAsync<AdminDashboardDto>("api/v2/admin/dashboard", cancellationToken)).Value;
 }
 
 public sealed class AdminImportApiClient(IAdminApiTransport transport) : IAdminImportApiClient
@@ -56,7 +58,7 @@ public sealed class AdminImportApiClient(IAdminApiTransport transport) : IAdminI
 
 public sealed class AdminMatchApiClient(IAdminApiTransport transport) : IAdminMatchApiClient
 {
-    public async Task<AdminPageResult<MatchListItemDto>> GetMatchesAsync(
+    public async Task<AdminPageResult<AdminMatchListItemDto>> GetMatchesAsync(
         int page,
         int pageSize,
         string? season,
@@ -64,20 +66,26 @@ public sealed class AdminMatchApiClient(IAdminApiTransport transport) : IAdminMa
         int? teamId,
         DateTime? from,
         DateTime? to,
+        string? search = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new QueryStringBuilder("api/Matches")
+        var query = new QueryStringBuilder("api/v2/admin/matches")
             .Add("page", Math.Max(1, page))
             .Add("pageSize", Math.Clamp(pageSize, 1, 100))
             .Add("season", season)
             .Add("day", day)
             .Add("teamId", teamId)
             .Add("from", from?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
-            .Add("to", to?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        var items = (await transport.GetAsync<List<MatchListItemDto>>(
-            query.ToString(),
-            cancellationToken)).Value;
-        return new AdminPageResult<MatchListItemDto>(items, page, pageSize, null, items.Count == pageSize);
+            .Add("to", to?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+            .Add("search", search);
+        var result = (await transport.GetAsync<V2PageContract<AdminMatchListItemDto>>(
+            query.ToString(), cancellationToken)).Value;
+        return new AdminPageResult<AdminMatchListItemDto>(
+            result.Items,
+            result.Page,
+            result.PageSize,
+            result.Total,
+            result.Page * result.PageSize < result.Total);
     }
 
     public Task<AdminHttpResult<AdminMatch>> GetMatchAsync(
@@ -131,12 +139,24 @@ public sealed class AdminMatchApiClient(IAdminApiTransport transport) : IAdminMa
 
 public sealed class AdminEventApiClient(IAdminApiTransport transport) : IAdminEventApiClient
 {
-    public async Task<IReadOnlyList<LegacyMatchEvent>> GetEventsAsync(
+    public async Task<AdminPageResult<AdminEventListItemDto>> GetEventsAsync(
         int matchId,
-        CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<List<LegacyMatchEvent>>(
-            $"api/MatchEvents?matchId={matchId}",
-            cancellationToken)).Value;
+        int page = 1,
+        int pageSize = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryStringBuilder($"api/v2/admin/matches/{matchId}/events")
+            .Add("page", Math.Max(1, page))
+            .Add("pageSize", Math.Clamp(pageSize, 1, 200));
+        var result = (await transport.GetAsync<V2PageContract<AdminEventListItemDto>>(
+            query.ToString(), cancellationToken)).Value;
+        return new AdminPageResult<AdminEventListItemDto>(
+            result.Items,
+            result.Page,
+            result.PageSize,
+            result.Total,
+            result.Page * result.PageSize < result.Total);
+    }
 
     public Task<AdminHttpResult<AdminMatchEvent>> GetEventAsync(
         int matchId,
@@ -204,22 +224,27 @@ public sealed class AdminPlayerApiClient(IAdminApiTransport transport) : IAdminP
         bool? isActive,
         CancellationToken cancellationToken = default)
     {
-        var query = new QueryStringBuilder("api/Players")
+        var query = new QueryStringBuilder("api/v2/admin/players")
             .Add("page", Math.Max(1, page))
             .Add("pageSize", Math.Clamp(pageSize, 1, 100))
             .Add("search", search)
             .Add("teamId", teamId)
             .Add("isActive", isActive?.ToString().ToLowerInvariant());
-        var items = (await transport.GetAsync<List<PlayerListItemDto>>(
+        var result = (await transport.GetAsync<V2PageContract<PlayerListItemDto>>(
             query.ToString(),
             cancellationToken)).Value;
-        return new AdminPageResult<PlayerListItemDto>(items, page, pageSize, null, items.Count == pageSize);
+        return new AdminPageResult<PlayerListItemDto>(
+            result.Items,
+            result.Page,
+            result.PageSize,
+            result.Total,
+            result.Page * result.PageSize < result.Total);
     }
 
     public async Task<PlayerListItemDto> GetPlayerAsync(
         int playerId,
         CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<PlayerListItemDto>($"api/Players/{playerId}", cancellationToken)).Value;
+        (await transport.GetAsync<PlayerListItemDto>($"api/v2/admin/players/{playerId}", cancellationToken)).Value;
 
     public async Task<Player> CreatePlayerAsync(
         AdminPlayerMutation request,
@@ -240,7 +265,7 @@ public sealed class AdminPlayerApiClient(IAdminApiTransport transport) : IAdminP
         };
         return (await transport.SendJsonAsync<Player>(
             HttpMethod.Post,
-            "api/Players",
+            "api/v2/admin/players",
             body,
             cancellationToken: cancellationToken)).Value;
     }
@@ -251,7 +276,7 @@ public sealed class AdminPlayerApiClient(IAdminApiTransport transport) : IAdminP
         CancellationToken cancellationToken = default) =>
         (await transport.SendJsonAsync<Player>(
             HttpMethod.Put,
-            $"api/Players/{playerId}",
+            $"api/v2/admin/players/{playerId}",
             request,
             cancellationToken: cancellationToken)).Value;
 }
@@ -264,11 +289,28 @@ public sealed class AdminTeamApiClient(IAdminApiTransport transport) : IAdminTea
         "POST/PUT /api/v2/admin/teams",
         "La lecture des equipes est disponible, mais leur administration auditee ne l'est pas.");
 
-    public async Task<IReadOnlyList<TeamDto>> GetTeamsAsync(CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<List<TeamDto>>("api/Teams", cancellationToken)).Value;
+    public async Task<AdminPageResult<AdminTeamListItemDto>> GetTeamsAsync(
+        int page = 1,
+        int pageSize = 100,
+        string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryStringBuilder("api/v2/admin/teams")
+            .Add("page", Math.Max(1, page))
+            .Add("pageSize", Math.Clamp(pageSize, 1, 200))
+            .Add("search", search);
+        var result = (await transport.GetAsync<V2PageContract<AdminTeamListItemDto>>(
+            query.ToString(), cancellationToken)).Value;
+        return new AdminPageResult<AdminTeamListItemDto>(
+            result.Items,
+            result.Page,
+            result.PageSize,
+            result.Total,
+            result.Page * result.PageSize < result.Total);
+    }
 
-    public async Task<TeamDto> GetTeamAsync(int teamId, CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<TeamDto>($"api/Teams/{teamId}", cancellationToken)).Value;
+    public async Task<AdminTeamListItemDto> GetTeamAsync(int teamId, CancellationToken cancellationToken = default) =>
+        (await transport.GetAsync<AdminTeamListItemDto>($"api/v2/admin/teams/{teamId}", cancellationToken)).Value;
 }
 
 public sealed class AdminReferenceDataApiClient(IAdminApiTransport transport) : IAdminReferenceDataApiClient
@@ -280,7 +322,7 @@ public sealed class AdminReferenceDataApiClient(IAdminApiTransport transport) : 
         "Les catalogues sont consultables, mais les modifications ne disposent pas encore d'un contrat admin.");
 
     public async Task<IReadOnlyList<CompetitionDto>> GetCompetitionsAsync(CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<List<CompetitionDto>>("api/Competitions", cancellationToken)).Value;
+        (await transport.GetAsync<List<CompetitionDto>>("api/v2/admin/reference-data/competitions", cancellationToken)).Value;
 
     public Task<IReadOnlyList<LookupItemDto>> GetEventsAsync(CancellationToken cancellationToken = default) =>
         GetLookupAsync("events", cancellationToken);
@@ -301,7 +343,7 @@ public sealed class AdminReferenceDataApiClient(IAdminApiTransport transport) : 
         string catalog,
         CancellationToken cancellationToken) =>
         (await transport.GetAsync<List<LookupItemDto>>(
-            $"api/Lookups/{catalog}",
+            $"api/v2/admin/reference-data/{catalog}",
             cancellationToken)).Value;
 }
 
@@ -358,28 +400,51 @@ public sealed class AdminMaintenanceApiClient(IAdminApiTransport transport) : IA
 
 public sealed class AdminUsersApiClient(IAdminApiTransport transport) : IAdminUsersApiClient
 {
-    public async Task<IReadOnlyList<AdminUser>> GetUsersAsync(CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<List<AdminUser>>("api/Users", cancellationToken)).Value;
+    public async Task<AdminPageResult<AdminUserDto>> GetUsersAsync(
+        int page = 1,
+        int pageSize = 100,
+        string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryStringBuilder("api/v2/admin/users")
+            .Add("page", Math.Max(1, page))
+            .Add("pageSize", Math.Clamp(pageSize, 1, 200))
+            .Add("search", search);
+        var result = (await transport.GetAsync<V2PageContract<AdminUserDto>>(
+            query.ToString(), cancellationToken)).Value;
+        return new AdminPageResult<AdminUserDto>(
+            result.Items,
+            result.Page,
+            result.PageSize,
+            result.Total,
+            result.Page * result.PageSize < result.Total);
+    }
 
-    public async Task<AdminUser> CreateUserAsync(
+    public async Task<AdminUserDto> CreateUserAsync(
         AdminUserCreate request,
         CancellationToken cancellationToken = default) =>
-        (await transport.SendJsonAsync<AdminUser>(
+        (await transport.SendJsonAsync<AdminUserDto>(
             HttpMethod.Post,
-            "api/Users",
+            "api/v2/admin/users",
             request,
             cancellationToken: cancellationToken)).Value;
 
-    public async Task<AdminUser> UpdateUserAsync(
+    public async Task<AdminUserDto> UpdateUserAsync(
         int userId,
         AdminUserUpdate request,
         CancellationToken cancellationToken = default) =>
-        (await transport.SendJsonAsync<AdminUser>(
+        (await transport.SendJsonAsync<AdminUserDto>(
             HttpMethod.Put,
-            $"api/Users/{userId}",
+            $"api/v2/admin/users/{userId}",
             request,
             cancellationToken: cancellationToken)).Value;
 }
+
+internal sealed record V2PageContract<T>(
+    IReadOnlyList<T> Items,
+    int Page,
+    int PageSize,
+    long Total);
 
 internal sealed class QueryStringBuilder(string path)
 {

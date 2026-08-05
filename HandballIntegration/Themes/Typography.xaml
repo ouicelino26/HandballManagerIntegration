@@ -21,4 +21,60 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
     </Style>
+
+    <!-- Page title: large display heading for content area top -->
+    <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminDisplayFont}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PageHeaderBrush}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <!-- Section header: medium heading within a card or panel -->
+    <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminDisplayFont}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSubtitle}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+    </Style>
+
+    <!-- Body text: standard reading text -->
+    <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminBodyFont}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <!-- Caption: small supplementary text -->
+    <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminBodyFont}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+    </Style>
+
+    <!-- Label: form field label, slightly emphasised -->
+    <Style x:Key="LabelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminBodyFont}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+    </Style>
+
+    <!-- Code text: monospace / inline value display -->
+    <Style x:Key="CodeTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas, Courier New"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+    </Style>
+
+    <!-- Error text: inline validation message -->
+    <Style x:Key="ErrorTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminBodyFont}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
 </ResourceDictionary>

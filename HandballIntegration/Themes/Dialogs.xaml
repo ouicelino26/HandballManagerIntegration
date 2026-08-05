@@ -1,7 +1,50 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Standard dialog surface: 400px min-width, 24px padding -->
     <Style x:Key="AdminDialogSurfaceStyle" TargetType="Border" BasedOn="{StaticResource AdminCardStyle}">
+        <Setter Property="MinWidth" Value="400"/>
         <Setter Property="MaxWidth" Value="680"/>
-        <Setter Property="Padding" Value="28"/>
+        <Setter Property="Padding" Value="24"/>
+    </Style>
+
+    <!-- Dialog title text style -->
+    <Style x:Key="AdminDialogTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminDisplayFont}"/>
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,16"/>
+    </Style>
+
+    <!-- Dialog content text style -->
+    <Style x:Key="AdminDialogContentStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AdminBodyFont}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Margin" Value="0,0,0,24"/>
+    </Style>
+
+    <!-- Dialog button row panel -->
+    <Style x:Key="AdminDialogButtonRowStyle" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+
+    <!-- Confirmation dialog surface (title + message + Cancel + Confirm destructive) -->
+    <Style x:Key="AdminConfirmationDialogStyle" TargetType="Border" BasedOn="{StaticResource AdminDialogSurfaceStyle}">
+        <Setter Property="MaxWidth" Value="480"/>
+    </Style>
+
+    <!-- Cancel button in dialogs (secondary style) -->
+    <Style x:Key="AdminDialogCancelButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="Margin" Value="0,0,8,0"/>
+        <Setter Property="MinWidth" Value="80"/>
+    </Style>
+
+    <!-- Confirm/destructive button in dialogs -->
+    <Style x:Key="AdminDialogConfirmButtonStyle" TargetType="Button" BasedOn="{StaticResource DestructiveButtonStyle}">
+        <Setter Property="MinWidth" Value="80"/>
     </Style>
 </ResourceDictionary>
