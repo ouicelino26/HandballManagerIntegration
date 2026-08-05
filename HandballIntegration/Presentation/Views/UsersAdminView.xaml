@@ -25,7 +25,7 @@
                             <DataGridTextColumn Header="Identifiant" Binding="{Binding Username}" Width="*"/>
                             <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*"/>
                             <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="120"/>
-                            <DataGridCheckBoxColumn Header="Actif" Binding="{Binding IsActive}" Width="70"/>
+                            <DataGridCheckBoxColumn Header="Actif" Binding="{Binding IsActive, Mode=OneWay}" Width="70"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
