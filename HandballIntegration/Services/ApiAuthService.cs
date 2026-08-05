@@ -1,11 +1,15 @@
 using HandballIntegration.Data;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
+using HandballIntegration.Admin.Abstractions;
+using HandballIntegration.Admin.Models;
 
 namespace HandballIntegration.Services
 {
@@ -13,21 +17,28 @@ namespace HandballIntegration.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ApiSettings _settings;
+        private readonly IAdminSessionService _sessionService;
 
         public string? AccessToken { get; private set; }
         public string? Username { get; private set; }
         public string? Role { get; private set; }
-        public bool IsAdmin => string.Equals(Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        public bool IsAdmin => string.Equals(Role, "Admin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(Role, "ADMIN", StringComparison.Ordinal)
+            || string.Equals(Role, "SUPER_ADMIN", StringComparison.Ordinal);
 
-        public ApiAuthService(HttpClient httpClient, IOptions<ApiSettings> options)
+        public ApiAuthService(
+            HttpClient httpClient,
+            IOptions<ApiSettings> options,
+            IAdminSessionService sessionService)
         {
             _httpClient = httpClient;
             _settings = options.Value;
+            _sessionService = sessionService;
         }
 
         public Task<bool> AuthenticateAsync()
         {
-            return Task.FromResult(!string.IsNullOrWhiteSpace(AccessToken) && IsAdmin);
+            return Task.FromResult(!string.IsNullOrWhiteSpace(AccessToken) && _sessionService.IsAuthenticated);
         }
 
         public async Task<ApiLoginResult> LoginAsync(string username, string password)
@@ -46,22 +57,23 @@ namespace HandballIntegration.Services
             {
                 response = await _httpClient.PostAsJsonAsync($"{_settings.ApiBaseUrl}auth/login", request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new ApiLoginResult
                 {
                     Success = false,
-                    Message = $"Connexion impossible a l'API : {ex.Message}"
+                    Message = "Connexion impossible a l'API. Verifiez le reseau puis reessayez."
                 };
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
                 return new ApiLoginResult
                 {
                     Success = false,
-                    Message = string.IsNullOrWhiteSpace(error) ? "Identifiants invalides." : error
+                    Message = response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                        ? "Identifiants invalides."
+                        : "La connexion a ete refusee par le serveur."
                 };
             }
 
@@ -80,20 +92,17 @@ namespace HandballIntegration.Services
                 };
             }
 
-            if (!string.Equals(result.role, "Admin", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ApiLoginResult
-                {
-                    Success = false,
-                    Message = "Acces reserve aux administrateurs.",
-                    Username = result.username,
-                    Role = result.role
-                };
-            }
-
             AccessToken = result.accesstoken;
             Username = result.username;
-            Role = result.role;
+            Role = NormalizeAdminRole(result.adminRole ?? result.role);
+            var permissions = (result.permissions ?? [])
+                .ToHashSet(StringComparer.Ordinal);
+            _sessionService.Set(new AdminSession(
+                AccessToken,
+                Username ?? string.Empty,
+                Role,
+                permissions,
+                ReadExpirationUtc(AccessToken) ?? DateTime.UtcNow.AddMinutes(30)));
 
             return new ApiLoginResult
             {
@@ -121,6 +130,33 @@ namespace HandballIntegration.Services
             AccessToken = null;
             Username = null;
             Role = null;
+            _sessionService.Clear();
+        }
+
+        private static string NormalizeAdminRole(string? role)
+        {
+            if (string.Equals(role, "Admin", StringComparison.Ordinal)) return "SUPER_ADMIN";
+            if (string.Equals(role, "Consultation", StringComparison.Ordinal)) return "VIEWER";
+            return string.IsNullOrWhiteSpace(role) ? "VIEWER" : role;
+        }
+
+        private static DateTime? ReadExpirationUtc(string token)
+        {
+            try
+            {
+                var segments = token.Split('.');
+                if (segments.Length < 2) return null;
+                var payload = segments[1].Replace('-', '+').Replace('_', '/');
+                payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+                using var document = JsonDocument.Parse(Convert.FromBase64String(payload));
+                return document.RootElement.TryGetProperty("exp", out var expiration)
+                    ? DateTimeOffset.FromUnixTimeSeconds(expiration.GetInt64()).UtcDateTime
+                    : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private class LoginResponse
@@ -128,6 +164,8 @@ namespace HandballIntegration.Services
             public string? accesstoken { get; set; }
             public string? username { get; set; }
             public string? role { get; set; }
+            public string? adminRole { get; set; }
+            public List<string>? permissions { get; set; }
         }
     }
 }

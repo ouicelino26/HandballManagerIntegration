@@ -2,6 +2,9 @@ using HandballIntegration.Data;
 using HandballIntegration.Services;
 using HandballIntegration.ViewModels;
 using HandballIntegration.Views;
+using HandballIntegration.Admin.Abstractions;
+using HandballIntegration.Admin.Services;
+using HandballIntegration.Admin.Workflows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,6 +36,21 @@ namespace HandballIntegration
                             context.Configuration.GetValue("ApiSettings:TimeoutSeconds", 30));
                     });
 
+                    services.AddSingleton<IClock, SystemClock>();
+                    services.AddSingleton<ICorrelationIdProvider, CorrelationIdProvider>();
+                    services.AddSingleton<IAdminSessionStorage, MemoryAdminSessionStorage>();
+                    services.AddSingleton<IAdminSessionService, AdminSessionService>();
+                    services.AddSingleton<IProblemDetailsMapper, AdminProblemDetailsMapper>();
+                    services.AddSingleton<IAdminNavigationService, AdminNavigationService>();
+                    services.AddTransient<AdminSessionHandler>();
+                    services.AddHttpClient<IAdminApiClient, AdminApiClient>(client =>
+                    {
+                        client.BaseAddress = new Uri(context.Configuration["ApiSettings:ApiBaseUrl"]!);
+                        client.Timeout = TimeSpan.FromSeconds(
+                            context.Configuration.GetValue("ApiSettings:TimeoutSeconds", 30));
+                    }).AddHttpMessageHandler<AdminSessionHandler>();
+                    services.AddSingleton<IAdminCapabilitiesService, AdminCapabilitiesService>();
+
                     services.AddHttpClient();
                     services.AddSingleton<IApiAuthService, ApiAuthService>();
                     services.AddSingleton<ApiService>();
@@ -57,7 +75,7 @@ namespace HandballIntegration
             var loginWindow = new LoginWindow();
             var loginResult = loginWindow.ShowDialog();
 
-            if (loginResult != true)
+            if (AdminStartupDecision.ShouldShutdownAfterLogin(loginResult))
             {
                 Shutdown();
                 return;
