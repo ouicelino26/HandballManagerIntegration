@@ -24,7 +24,7 @@ public sealed class AdminNavigationService : IAdminNavigationService
     ];
 
     public IReadOnlyList<AdminNavigationItem> Build(IReadOnlySet<string> permissions) =>
-        Modules.Where(item => permissions.Contains(item.RequiredPermission)).ToArray();
+        Modules.Where(item => item.IsAvailable && permissions.Contains(item.RequiredPermission)).ToArray();
 
     public bool CanAccess(string tag, IReadOnlySet<string> permissions) =>
         Modules.Any(item =>
