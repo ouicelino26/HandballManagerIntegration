@@ -40,4 +40,8 @@
     <SolidColorBrush x:Key="ButtonPrimaryHoverBrush" Color="#C4552E"/>
     <SolidColorBrush x:Key="ButtonDestructiveBrush" Color="#B5413D"/>
     <SolidColorBrush x:Key="ButtonDestructiveHoverBrush" Color="#9B342F"/>
+    <!-- Soft / tinted surface tokens -->
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#FCEEE7"/>
+    <SolidColorBrush x:Key="AccentAltSoftBrush" Color="#F5EDE8"/>
+    <SolidColorBrush x:Key="ContentSurfaceBrush" Color="#FDFCF8"/>
 </ResourceDictionary>

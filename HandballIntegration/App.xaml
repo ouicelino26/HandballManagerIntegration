@@ -23,6 +23,7 @@
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
                 <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><views:DashboardView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:ImportsViewModel}"><views:ImportsView/></DataTemplate>
+                <DataTemplate DataType="{x:Type vm:LegacyIntegrationViewModel}"><views:LegacyIntegrationView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:MatchesViewModel}"><views:MatchesView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:PlayersAdminViewModel}"><views:PlayersAdminView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:TeamsAdminViewModel}"><views:TeamsAdminView/></DataTemplate>

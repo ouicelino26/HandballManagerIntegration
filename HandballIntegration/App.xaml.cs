@@ -85,6 +85,7 @@ namespace HandballIntegration
                     services.AddTransient<AuditViewModel>();
                     services.AddTransient<UsersAdminViewModel>();
                     services.AddTransient<SettingsViewModel>();
+                    services.AddTransient<LegacyIntegrationViewModel>();
                     services.AddTransient<AdminShellViewModel>();
                     services.AddTransient<LoginViewModel>();
 
@@ -102,6 +103,14 @@ namespace HandballIntegration
         protected override async void OnStartup(StartupEventArgs e)
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            DispatcherUnhandledException += (_, args) =>
+            {
+                System.IO.File.AppendAllText(
+                    @"C:\Users\donovan.bierque\Desktop\wpf-crash.log",
+                    $"[{DateTime.Now:HH:mm:ss}] {args.Exception}\n\n");
+                args.Handled = false;
+            };
 
             base.OnStartup(e);
             await AppHost.StartAsync();

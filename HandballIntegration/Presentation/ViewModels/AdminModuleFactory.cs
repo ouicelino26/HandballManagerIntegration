@@ -14,7 +14,7 @@ public sealed class AdminModuleFactory(IServiceProvider services) : IAdminModule
     public IAdminModuleViewModel Create(string tag) => tag switch
     {
         "dashboard" => services.GetRequiredService<DashboardViewModel>(),
-        "integration" => services.GetRequiredService<ImportsViewModel>(),
+        "integration" => services.GetRequiredService<LegacyIntegrationViewModel>(),
         "matches" or "events" => services.GetRequiredService<MatchesViewModel>(),
         "players" => services.GetRequiredService<PlayersAdminViewModel>(),
         "teams" => services.GetRequiredService<TeamsAdminViewModel>(),

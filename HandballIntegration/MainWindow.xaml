@@ -135,7 +135,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding Notice}" VerticalAlignment="Center" FontSize="9" Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="9" Foreground="{StaticResource MutedTextBrush}">
-                    <Run Text="Client "/><Run Text="{Binding ClientVersion}"/><Run Text="  |  API "/><Run Text="{Binding ApiVersion}"/>
+                    <Run Text="Client "/><Run Text="{Binding ClientVersion, Mode=OneWay}"/><Run Text="  |  API "/><Run Text="{Binding ApiVersion, Mode=OneWay}"/>
                 </TextBlock>
             </Grid>
         </Grid>
