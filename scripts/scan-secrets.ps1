@@ -12,7 +12,7 @@ $Root = if ([string]::IsNullOrWhiteSpace($Root)) {
     $Root
 }
 $rootPath = (Resolve-Path $Root).Path
-$trackedFiles = & git -C $rootPath ls-files
+$trackedFiles = & git -C $rootPath ls-files --cached --others --exclude-standard
 
 if ($LASTEXITCODE -ne 0) {
     throw "Unable to enumerate tracked files."
