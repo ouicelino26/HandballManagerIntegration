@@ -1,0 +1,61 @@
+<Page x:Class="HandballIntegration.Views.ModuleStatusPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:components="clr-namespace:HandballIntegration.Components"
+      Background="Transparent">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="24"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <components:AdminPageHeader Eyebrow="MODULE ADMINISTRATIF"
+                                        Title="{Binding Label}"
+                                        Subtitle="{Binding Description}"/>
+
+            <Border Grid.Row="2" Style="{StaticResource AdminCardStyle}" MaxWidth="760"
+                    HorizontalAlignment="Left">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="22"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="18"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Perimetre confirme" FontSize="17" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrimaryTextBrush}"/>
+                            <TextBlock Text="Aucune donnee fictive n'est affichee sur cet ecran."
+                                       Margin="0,5,0,0" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}"/>
+                        </StackPanel>
+                        <components:StatusBadge Grid.Column="1" Status="{Binding Status}"/>
+                    </Grid>
+
+                    <Border Grid.Row="2" Padding="16" CornerRadius="14" Background="{StaticResource SurfaceBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Capacite API requise" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource SecondaryTextBrush}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding RequiredPermission}" FontSize="12"
+                                       Foreground="{StaticResource PrimaryTextBrush}"/>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Grid.Row="4" x:Name="AvailabilityText" TextWrapping="Wrap" FontSize="13"
+                               Foreground="{StaticResource SecondaryTextBrush}"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Page>

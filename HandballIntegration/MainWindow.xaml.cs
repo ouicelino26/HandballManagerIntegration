@@ -1,192 +1,222 @@
-using HandballIntegration.Services;
-using HandballIntegration.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
-using System.Threading.Tasks;
+using System.Reflection;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using HandballIntegration.Admin.Abstractions;
+using HandballIntegration.Admin.Models;
+using HandballIntegration.Data;
+using HandballIntegration.Services;
+using HandballIntegration.Views;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
-namespace HandballIntegration
+namespace HandballIntegration;
+
+public partial class MainWindow : Window
 {
-    public partial class MainWindow : Window
+    private readonly IApiAuthService _authService;
+    private readonly IAdminCapabilitiesService _capabilitiesService;
+    private readonly IAdminNavigationService _navigationService;
+    private readonly IAdminSessionService _sessionService;
+    private readonly ApiSettings _settings;
+    private IReadOnlyList<AdminNavigationItem> _modules = [];
+    private bool _navigationReady;
+    private bool _isSidebarCollapsed;
+
+    public MainWindow()
     {
-        private readonly ApiService _apiService;
-        private readonly IApiAuthService _authService;
-        private bool _navigationReady;
-        private bool _isSidebarCollapsed;
+        InitializeComponent();
 
-        public MainWindow()
+        _authService = App.Services.GetRequiredService<IApiAuthService>();
+        _capabilitiesService = App.Services.GetRequiredService<IAdminCapabilitiesService>();
+        _navigationService = App.Services.GetRequiredService<IAdminNavigationService>();
+        _sessionService = App.Services.GetRequiredService<IAdminSessionService>();
+        _settings = App.Services.GetRequiredService<IOptions<ApiSettings>>().Value;
+
+        ApplicationNameText.Text = _settings.ApplicationName;
+        SidebarEnvironmentText.Text = _settings.EnvironmentLabel;
+        ClientVersionText.Text = $"Client {ReadClientVersion()}";
+        Loaded += MainWindow_Loaded;
+    }
+
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        ApplySidebarState();
+        await RefreshShellAsync();
+    }
+
+    private async Task RefreshShellAsync(string? preferredTag = null)
+    {
+        _navigationReady = false;
+        NavigationList.ItemsSource = null;
+        SetApiState(false, "Verification API");
+        UpdateIdentity();
+
+        try
         {
-            InitializeComponent();
+            await _capabilitiesService.RefreshAsync();
+            _modules = _navigationService.Build(_capabilitiesService.Current);
+            NavigationList.ItemsSource = _modules;
+            ApiVersionText.Text = $"API {_capabilitiesService.ApiVersion}";
+            SetApiState(true, "API disponible");
+            ShellNoticeText.Text = $"{_modules.Count} module(s) autorise(s) par l'API";
+            _navigationReady = true;
 
-            _apiService = App.Services.GetRequiredService<ApiService>();
-            _authService = App.Services.GetRequiredService<IApiAuthService>();
-            DataContext = new MainViewModel();
-            Loaded += MainWindow_Loaded;
-        }
-
-        private void NavigationList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (!_navigationReady || ContentFrame is null)
+            var target = _modules.FirstOrDefault(item => item.Tag == preferredTag) ?? _modules.FirstOrDefault();
+            if (target is null)
             {
+                ShowUnavailableState(
+                    "Aucun module autorise",
+                    "L'API n'a retourne aucun module accessible pour cette session.",
+                    AdminModuleStatus.Blocked);
                 return;
             }
 
-            if (NavigationList.SelectedItem is not ListBoxItem item)
-            {
-                return;
-            }
-
-            NavigateTo(item.Tag?.ToString());
+            NavigationList.SelectedItem = target;
+            NavigateTo(target);
         }
-
-        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        catch (AdminSessionExpiredException)
         {
-            try
-            {
-                ApplySidebarState();
-                _navigationReady = true;
-
-                if (NavigationList.SelectedItem is null)
-                {
-                    NavigationList.SelectedIndex = 0;
-                }
-                else if (NavigationList.SelectedItem is ListBoxItem item)
-                {
-                    NavigateTo(item.Tag?.ToString());
-                }
-
-                await RefreshShellStateAsync();
-            }
-            catch (System.Exception ex)
-            {
-                MessageBox.Show(
-                    "Erreur pendant le chargement de la session : " + ex.Message,
-                    "Chargement",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
+            ShowCapabilityFailure("Votre session a expire. Utilisez Deconnexion pour vous reconnecter.");
         }
-
-        private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+        catch (AdminApiException exception)
         {
-            _isSidebarCollapsed = !_isSidebarCollapsed;
-            ApplySidebarState();
+            ShowCapabilityFailure($"{exception.Error.Message} {exception.Error.Action}");
         }
-
-        private async void LogoutButton_Click(object sender, RoutedEventArgs e)
+        catch (HttpRequestException)
         {
-            _authService.Logout();
-            Hide();
-
-            var loginWindow = new Views.LoginWindow();
-            var loginResult = loginWindow.ShowDialog();
-
-            if (loginResult != true)
-            {
-                Close();
-                return;
-            }
-
-            Show();
-            Activate();
-            await RefreshShellStateAsync();
-
-            if (NavigationList.SelectedItem is ListBoxItem item)
-            {
-                NavigateTo(item.Tag?.ToString());
-            }
+            ShowCapabilityFailure("L'API d'administration est inaccessible. Verifiez le reseau puis reessayez.");
         }
-
-        private void ApplySidebarState()
+        catch (TaskCanceledException)
         {
-            SidebarColumn.Width = new GridLength(_isSidebarCollapsed ? 92 : 272);
-            SidebarGapColumn.Width = new GridLength(_isSidebarCollapsed ? 12 : 18);
-            SidebarBorder.Padding = _isSidebarCollapsed ? new Thickness(12) : new Thickness(18);
-            SidebarStatusCard.Width = _isSidebarCollapsed ? 40 : double.NaN;
-            SidebarStatusCard.Padding = _isSidebarCollapsed ? new Thickness(0) : new Thickness(14, 12, 14, 12);
-            SidebarStatusCard.HorizontalAlignment = _isSidebarCollapsed ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
-            SidebarToggleGlyph.Text = _isSidebarCollapsed ? ">" : "<";
-
-            var expandedVisibility = _isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
-
-            SidebarBrandTextPanel.Visibility = expandedVisibility;
-            SidebarStatusTextPanel.Visibility = expandedVisibility;
-            DashboardNavTextPanel.Visibility = expandedVisibility;
-            IntegrationNavTextPanel.Visibility = expandedVisibility;
-            PlayersNavTextPanel.Visibility = expandedVisibility;
-            PdfNavTextPanel.Visibility = expandedVisibility;
-            AccountsNavTextPanel.Visibility = expandedVisibility;
-            LogoutTextPanel.Visibility = expandedVisibility;
-        }
-
-        private void NavigateTo(string? tag)
-        {
-            if (ContentFrame is null || ShellSectionText is null || ShellTitleText is null || ShellSubtitleText is null)
-            {
-                return;
-            }
-
-            switch (tag)
-            {
-                case "dashboard":
-                    ContentFrame.Navigate(new Views.DashboardPage());
-                    SetShellHeader(
-                        "Vue rapide",
-                        "Dashboard",
-                        "Les informations utiles, sans surcharge.");
-                    break;
-
-                case "integration":
-                    ContentFrame.Navigate(new Views.IntegrationPage());
-                    SetShellHeader(
-                        "Import",
-                        "Integration",
-                        "Choisir, verifier puis integrer.");
-                    break;
-
-                case "players":
-                    ContentFrame.Navigate(new Views.PlayersPage());
-                    SetShellHeader(
-                        "Reference",
-                        "Joueuses",
-                        "Filtrer vite et agir sans bruit visuel.");
-                    break;
-
-                case "pdf":
-                    ContentFrame.Navigate(new Views.SendPdf());
-                    SetShellHeader(
-                        "Export",
-                        "Studio PDF",
-                        "Composer la page sans perdre le focus.");
-                    break;
-
-                case "accounts":
-                    ContentFrame.Navigate(new Views.UsersPage());
-                    SetShellHeader(
-                        "Administration",
-                        "Comptes",
-                        "Creer un compte et verifier les acces en un coup d'oeil.");
-                    break;
-            }
-        }
-
-        private async Task RefreshShellStateAsync()
-        {
-            bool success = await _apiService.TestConnectionAsync();
-
-            if (DataContext is MainViewModel vm)
-            {
-                vm.IsApiConnected = success;
-                vm.CurrentUsername = _apiService.CurrentUsername ?? "Session";
-                vm.CurrentRole = _apiService.CurrentRole ?? "Admin";
-            }
-        }
-
-        private void SetShellHeader(string section, string title, string subtitle)
-        {
-            ShellSectionText.Text = section;
-            ShellTitleText.Text = title;
-            ShellSubtitleText.Text = subtitle;
+            ShowCapabilityFailure("L'API n'a pas repondu dans le delai prevu. Reessayez dans quelques instants.");
         }
     }
+
+    private void NavigationList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_navigationReady || NavigationList.SelectedItem is not AdminNavigationItem item)
+        {
+            return;
+        }
+
+        if (!_navigationService.CanAccess(item.Tag, _capabilitiesService.Current))
+        {
+            ShowUnavailableState(
+                "Acces refuse",
+                "Ce module n'est pas autorise par les capacites de la session courante.",
+                AdminModuleStatus.Blocked);
+            return;
+        }
+
+        NavigateTo(item);
+    }
+
+    private void NavigateTo(AdminNavigationItem item)
+    {
+        ContentFrame.Content = item.Tag switch
+        {
+            "dashboard" => new DashboardPage(),
+            "integration" => new IntegrationPage(),
+            "players" => new PlayersPage(),
+            "users" => new UsersPage(),
+            _ => new ModuleStatusPage(item)
+        };
+
+        ShellSectionText.Text = item.RequiredPermission.ToUpperInvariant();
+        ShellTitleText.Text = item.Label;
+        ShellSubtitleText.Text = item.Description;
+        ShellNoticeText.Text = $"Etat du module : {item.Status}";
+    }
+
+    private void ShowCapabilityFailure(string message)
+    {
+        _modules = [];
+        NavigationList.ItemsSource = _modules;
+        ApiVersionText.Text = "API indisponible";
+        SetApiState(false, "API indisponible");
+        ShellNoticeText.Text = message;
+        ShowUnavailableState(
+            "Capacites indisponibles",
+            "La navigation reste fermee tant que l'API n'a pas confirme les autorisations.",
+            AdminModuleStatus.Blocked);
+    }
+
+    private void ShowUnavailableState(string title, string description, string status)
+    {
+        var item = new AdminNavigationItem(
+            "unavailable",
+            title,
+            description,
+            "--",
+            "Capability.Required",
+            status,
+            false);
+        ContentFrame.Content = new ModuleStatusPage(item);
+        ShellSectionText.Text = "SECURITE";
+        ShellTitleText.Text = title;
+        ShellSubtitleText.Text = description;
+    }
+
+    private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+    {
+        _isSidebarCollapsed = !_isSidebarCollapsed;
+        ApplySidebarState();
+    }
+
+    private void ApplySidebarState()
+    {
+        SidebarColumn.Width = new GridLength(_isSidebarCollapsed ? 84 : 292);
+        SidebarBorder.Padding = _isSidebarCollapsed ? new Thickness(12) : new Thickness(18);
+        BrandTextPanel.Visibility = _isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarApiTextPanel.Visibility = _isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        LogoutText.Visibility = _isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarApiCard.HorizontalAlignment = _isSidebarCollapsed
+            ? HorizontalAlignment.Center
+            : HorizontalAlignment.Stretch;
+        NavigationList.ItemTemplate = (DataTemplate)FindResource(
+            _isSidebarCollapsed ? "CollapsedNavigationTemplate" : "ExpandedNavigationTemplate");
+        SidebarToggleButton.Content = _isSidebarCollapsed ? ">" : "<";
+        System.Windows.Automation.AutomationProperties.SetName(
+            SidebarToggleButton,
+            _isSidebarCollapsed ? "Deplier le menu" : "Replier le menu");
+    }
+
+    private async void LogoutButton_Click(object sender, RoutedEventArgs e)
+    {
+        _authService.Logout();
+        Hide();
+
+        var loginWindow = new LoginWindow();
+        var loginResult = loginWindow.ShowDialog();
+        if (loginResult != true)
+        {
+            Close();
+            return;
+        }
+
+        Show();
+        Activate();
+        await RefreshShellAsync();
+    }
+
+    private void UpdateIdentity()
+    {
+        var session = _sessionService.Current;
+        UsernameText.Text = session?.Username ?? "Session indisponible";
+        RoleText.Text = session?.Role ?? "Non authentifie";
+        UserInitialText.Text = string.IsNullOrWhiteSpace(session?.Username)
+            ? "?"
+            : session.Username[..1].ToUpperInvariant();
+    }
+
+    private void SetApiState(bool available, string label)
+    {
+        SidebarApiText.Text = label;
+        SidebarApiDot.Fill = (Brush)FindResource(available ? "SuccessBrush" : "WarningBrush");
+    }
+
+    private static string ReadClientVersion() =>
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "indisponible";
 }

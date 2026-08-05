@@ -2,464 +2,179 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.modernwpf.com/2019"
+        xmlns:models="clr-namespace:HandballIntegration.Admin.Models"
         ui:WindowHelper.UseModernWindowStyle="True"
-        Title="Handball Integration"
-        Width="1380"
-        Height="880"
-        MinWidth="1100"
-        MinHeight="720">
-
+        Title="HandWStat Administration"
+        Width="1440"
+        Height="900"
+        MinWidth="1060"
+        MinHeight="700"
+        Background="{StaticResource AppBackgroundBrush}">
     <Window.Resources>
-        <Style x:Key="ShellNavigationListStyle" TargetType="ListBox">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-        </Style>
+        <DataTemplate x:Key="ExpandedNavigationTemplate" DataType="{x:Type models:AdminNavigationItem}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="38"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="30" Height="30" CornerRadius="10" Background="#18FFFFFF"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Glyph}" FontSize="10" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+                    <TextBlock Text="{Binding Description}" Margin="0,2,0,0" FontSize="10"
+                               Opacity="0.66" TextTrimming="CharacterEllipsis"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
 
-        <Style x:Key="ShellNavigationItemStyle" TargetType="ListBoxItem">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="ItemBorder"
-                                Background="#12FFFFFF"
-                                BorderBrush="#20FFFFFF"
-                                BorderThickness="1"
-                                CornerRadius="16"
-                                Padding="12">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="#1BFFFFFF"/>
-                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#34FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="#F5F1EA"/>
-                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#F5F1EA"/>
-                                <Setter Property="Foreground" Value="#192823"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="SidebarToggleButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="MinWidth" Value="40"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="#18FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#24FFFFFF"/>
-            <Setter Property="Foreground" Value="#FFF9F2"/>
-        </Style>
-
-        <Style x:Key="SidebarActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Height" Value="44"/>
-            <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="Background" Value="#18FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#24FFFFFF"/>
-            <Setter Property="Foreground" Value="#FFF9F2"/>
-        </Style>
+        <DataTemplate x:Key="CollapsedNavigationTemplate" DataType="{x:Type models:AdminNavigationItem}">
+            <Grid ToolTip="{Binding Label}">
+                <TextBlock Text="{Binding Glyph}" FontSize="11" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
+            </Grid>
+        </DataTemplate>
     </Window.Resources>
 
-    <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Canvas IsHitTestVisible="False">
-            <Ellipse Width="320"
-                     Height="320"
-                     Fill="{StaticResource WarmGlowBrush}"
-                     Canvas.Left="-80"
-                     Canvas.Top="-90"/>
-            <Ellipse Width="380"
-                     Height="380"
-                     Fill="#1EDCEFE9"
-                     Canvas.Right="-90"
-                     Canvas.Bottom="-110"/>
-        </Canvas>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="SidebarColumn" Width="292"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <Grid Margin="18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="272"/>
-                <ColumnDefinition x:Name="SidebarGapColumn" Width="18"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <Border x:Name="SidebarBorder" Grid.Column="0" Margin="12" Padding="18"
+                Background="{StaticResource AdminShellBrush}" CornerRadius="26">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="18"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="18"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <Border x:Name="SidebarBorder"
-                    Grid.Column="0"
-                    Background="{StaticResource ShellGradientBrush}"
-                    BorderBrush="{StaticResource ShellBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="26"
-                    Padding="18">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="42" Height="42" CornerRadius="14" Background="{StaticResource AccentBrush}">
+                        <TextBlock Text="HW" Foreground="White" FontSize="13" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel x:Name="BrandTextPanel" Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="ApplicationNameText" Foreground="{StaticResource AdminShellTextBrush}"
+                                   FontFamily="{StaticResource AdminDisplayFont}" FontSize="17" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="Plateforme d'administration" Margin="0,2,0,0" Foreground="#BFD0C9" FontSize="10"/>
+                    </StackPanel>
+                    <Button x:Name="SidebarToggleButton" Grid.Column="2" Width="36" Height="36" MinWidth="36"
+                            Padding="0" Content="&lt;" Background="#18FFFFFF" BorderBrush="#30FFFFFF"
+                            AutomationProperties.Name="Replier le menu"
+                            Click="ToggleSidebar_Click"/>
+                </Grid>
 
-                    <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <ListBox x:Name="NavigationList" Grid.Row="2"
+                         Style="{StaticResource AdminNavigationListStyle}"
+                         ItemContainerStyle="{StaticResource AdminNavigationItemStyle}"
+                         ItemTemplate="{StaticResource ExpandedNavigationTemplate}"
+                         Foreground="{StaticResource AdminShellTextBrush}"
+                         AutomationProperties.Name="Modules d'administration"
+                         SelectionChanged="NavigationList_SelectionChanged"/>
 
-                        <StackPanel x:Name="SidebarBrandTextPanel">
-                            <Border Width="104"
-                                    Padding="10,6"
-                                    CornerRadius="12"
-                                    Background="#18FFFFFF"
-                                    BorderBrush="#24FFFFFF"
-                                    BorderThickness="1"
-                                    HorizontalAlignment="Left">
-                                <TextBlock Text="Match ops"
-                                           FontSize="11"
-                                           Foreground="#F8F4EE"
-                                           HorizontalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Margin="0,14,0,0"
-                                       FontSize="28"
-                                       FontWeight="SemiBold"
-                                       Foreground="#FFF9F2"
-                                       Text="Handball Integration"/>
-                            <TextBlock Margin="0,8,0,0"
-                                       FontSize="12"
-                                       Foreground="#D9E8E2"
-                                       Text="Navigation simple et controle rapide."/>
-                        </StackPanel>
-
-                        <Button Grid.Column="1"
-                                x:Name="SidebarToggleButton"
-                                Style="{StaticResource SidebarToggleButtonStyle}"
-                                Click="ToggleSidebar_Click">
-                            <TextBlock x:Name="SidebarToggleGlyph"
-                                       Text="&lt;"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Button>
-                    </Grid>
-
-                    <Border Grid.Row="1"
-                            x:Name="SidebarStatusCard"
-                            Margin="0,18,0,16"
-                            Padding="14,12"
-                            CornerRadius="18"
-                            Background="#16FFFFFF"
-                            BorderBrush="#24FFFFFF"
-                            BorderThickness="1">
+                <StackPanel Grid.Row="4">
+                    <Border x:Name="SidebarApiCard" Padding="13,11" CornerRadius="14" Background="#12FFFFFF">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-
-                            <Ellipse Width="10"
-                                     Height="10"
-                                     VerticalAlignment="Center">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="#FF9A8B"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
-                                                <Setter Property="Fill" Value="#9DE0B2"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
-
-                            <StackPanel x:Name="SidebarStatusTextPanel"
-                                        Grid.Column="1"
-                                        Margin="12,0,0,0">
-                                <TextBlock Text="{Binding CurrentUsername, FallbackValue=Session}"
-                                           FontSize="11"
-                                           Foreground="#D9E8E2"/>
-                                <TextBlock FontSize="15"
-                                           FontWeight="SemiBold"
-                                           Foreground="#FFF9F2">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="En attente"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
-                                                    <Setter Property="Text" Value="API locale OK"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Margin="0,4,0,0"
-                                           Text="{Binding CurrentRole, StringFormat=Role : {0}}"
-                                           FontSize="11"
-                                           Foreground="#D9E8E2"/>
+                            <Ellipse x:Name="SidebarApiDot" Width="9" Height="9" Fill="{StaticResource WarningBrush}"
+                                     VerticalAlignment="Center"/>
+                            <StackPanel x:Name="SidebarApiTextPanel" Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock x:Name="SidebarApiText" Foreground="{StaticResource AdminShellTextBrush}"
+                                           FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="SidebarEnvironmentText" Foreground="#BFD0C9" FontSize="10" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Grid>
                     </Border>
-
-                    <ScrollViewer Grid.Row="2"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ListBox x:Name="NavigationList"
-                                 Style="{StaticResource ShellNavigationListStyle}"
-                                 ItemContainerStyle="{StaticResource ShellNavigationItemStyle}"
-                                 SelectionChanged="NavigationList_SelectionChanged">
-                            <ListBoxItem Tag="dashboard" IsSelected="True">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="01"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="DashboardNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Dashboard"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="integration">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="02"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="IntegrationNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Integration"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="players">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="03"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="PlayersNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Joueuses"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="pdf">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="04"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="PdfNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="PDF"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-
-                            <ListBoxItem Tag="accounts">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="40"
-                                            Height="40"
-                                            CornerRadius="12"
-                                            Background="#24FFFFFF"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="05"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#FFF9F2"/>
-                                    </Border>
-
-                                    <StackPanel x:Name="AccountsNavTextPanel"
-                                                Grid.Column="1"
-                                                Margin="12,0,0,0"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Comptes"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </ListBoxItem>
-                        </ListBox>
-                    </ScrollViewer>
-
-                    <Button Grid.Row="3"
-                            x:Name="LogoutButton"
-                            Margin="0,14,0,0"
-                            Style="{StaticResource SidebarActionButtonStyle}"
+                    <Button Margin="0,10,0,0" Height="38" MinWidth="38" Padding="10,0"
+                            Background="Transparent" BorderBrush="#30FFFFFF"
+                            AutomationProperties.Name="Se deconnecter"
                             Click="LogoutButton_Click">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border Width="28"
-                                    Height="28"
-                                    CornerRadius="10"
-                                    Background="#24FFFFFF"
-                                    HorizontalAlignment="Left">
-                                <TextBlock Text="X"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontWeight="SemiBold"
-                                           Foreground="#FFF9F2"/>
-                            </Border>
-
-                            <StackPanel x:Name="LogoutTextPanel"
-                                        Grid.Column="1"
-                                        Margin="12,0,0,0"
-                                        VerticalAlignment="Center">
-                                <TextBlock Text="Se deconnecter"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Grid>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="x" Foreground="{StaticResource AdminShellTextBrush}" FontWeight="Bold"/>
+                            <TextBlock x:Name="LogoutText" Text="Deconnexion" Margin="9,0,0,0"
+                                       Foreground="{StaticResource AdminShellTextBrush}"/>
+                        </StackPanel>
                     </Button>
-                </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="100"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="36"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="18,12,26,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="ShellSectionText" Text="ADMINISTRATION" Foreground="{StaticResource AccentBrush}"
+                               FontSize="10" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="ShellTitleText" Text="Chargement" Margin="0,4,0,0"
+                               Style="{StaticResource AdminTitleTextStyle}"/>
+                    <TextBlock x:Name="ShellSubtitleText" Text="Validation des autorisations en cours."
+                               Margin="0,3,0,0" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
+                </StackPanel>
+                <Border Grid.Column="1" Padding="15,10" CornerRadius="16" Background="{StaticResource ElevatedSurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="34" Height="34" CornerRadius="12" Background="{StaticResource AccentAltSoftBrush}">
+                            <TextBlock x:Name="UserInitialText" Text="A" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold"/>
+                        </Border>
+                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="UsernameText" Text="Session" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{StaticResource PrimaryTextBrush}"/>
+                            <TextBlock x:Name="RoleText" Text="Role en attente" Margin="0,2,0,0" FontSize="10"
+                                       Foreground="{StaticResource SecondaryTextBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="1" Margin="18,8,26,8" Background="{StaticResource ContentSurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="24" ClipToBounds="True">
+                <Frame x:Name="ContentFrame" NavigationUIVisibility="Hidden" Background="Transparent"
+                       AutomationProperties.Name="Contenu du module"/>
             </Border>
 
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="16"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <Border Grid.Row="0"
-                        Style="{StaticResource SurfaceCardStyle}"
-                        Background="#FFF8F0"
-                        Padding="18">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel>
-                            <TextBlock x:Name="ShellSectionText"
-                                       Style="{StaticResource EyebrowTextStyle}"
-                                       Text="Vue rapide"/>
-                            <TextBlock x:Name="ShellTitleText"
-                                       Margin="0,6,0,0"
-                                       FontSize="28"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource PrimaryTextBrush}"
-                                       Text="Dashboard"/>
-                            <TextBlock x:Name="ShellSubtitleText"
-                                       Margin="0,8,0,0"
-                                       Style="{StaticResource BodyTextStyle}"
-                                       Text="Les informations utiles, sans surcharge."/>
-                        </StackPanel>
-
-                        <Border Grid.Column="1"
-                                Padding="14,10"
-                                CornerRadius="16"
-                                Background="{StaticResource SoftNeutralBrush}"
-                                VerticalAlignment="Center">
-                            <TextBlock FontWeight="SemiBold"
-                                       Foreground="{StaticResource PrimaryTextBrush}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="API en attente"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsApiConnected}" Value="True">
-                                                <Setter Property="Text" Value="API locale"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Border>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Row="2"
-                        Style="{StaticResource SurfaceCardStyle}"
-                        Padding="0"
-                        Background="{StaticResource ContentSurfaceBrush}">
-                    <Frame x:Name="ContentFrame"
-                           NavigationUIVisibility="Hidden"
-                           Background="Transparent"/>
-                </Border>
+            <Grid Grid.Row="2" Margin="24,0,30,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="ShellNoticeText" VerticalAlignment="Center" FontSize="10"
+                           Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="ClientVersionText" FontSize="10" Foreground="{StaticResource MutedTextBrush}"/>
+                    <TextBlock Text="  |  " FontSize="10" Foreground="{StaticResource MutedTextBrush}"/>
+                    <TextBlock x:Name="ApiVersionText" FontSize="10" Foreground="{StaticResource MutedTextBrush}"/>
+                </StackPanel>
             </Grid>
         </Grid>
     </Grid>
