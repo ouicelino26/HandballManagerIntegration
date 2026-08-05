@@ -1,0 +1,99 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.PlayersAdminView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="Auto"/><RowDefinition Height="16"/><RowDefinition Height="Auto"/><RowDefinition Height="16"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <components:AdminPageHeader Eyebrow="ANNUAIRE SPORTIF" Title="{Binding Title}" Subtitle="{Binding Subtitle}"/>
+            <views:AdminStateView Grid.Row="2"/>
+
+            <Border Grid.Row="4" Style="{StaticResource AdminCardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="330"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <WrapPanel>
+                            <TextBox Width="260" Margin="0,0,8,8" Tag="Nom de la joueuse" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Rechercher une joueuse"/>
+                            <ComboBox Width="200" Margin="0,0,8,8" ItemsSource="{Binding Teams}" SelectedItem="{Binding FilterTeam}"
+                                      DisplayMemberPath="TeamName" Style="{StaticResource AdminComboBoxStyle}" AutomationProperties.Name="Filtrer par equipe"/>
+                            <CheckBox Margin="6,0,8,8" VerticalAlignment="Center" Content="Actives uniquement"
+                                      IsThreeState="True" IsChecked="{Binding ActiveOnly}"
+                                      AutomationProperties.HelpText="Etat indetermine pour afficher toutes les joueuses"/>
+                        </WrapPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Effacer" Command="{Binding ClearFiltersCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Filtrer" Command="{Binding ApplyFiltersCommand}" Margin="0,0,8,0"/>
+                            <Button Content="Nouvelle joueuse" Command="{Binding NewPlayerCommand}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding Players}" SelectedItem="{Binding SelectedPlayer}"
+                              Style="{StaticResource AdminDataGridStyle}" EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                              AutomationProperties.Name="Liste paginee des joueuses">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Joueuse" Binding="{Binding FullName}" Width="2*"/>
+                            <DataGridTextColumn Header="Equipe" Binding="{Binding TeamName}" Width="*"/>
+                            <DataGridTextColumn Header="Poste" Binding="{Binding PositionName}" Width="120"/>
+                            <DataGridTextColumn Header="Nationalite" Binding="{Binding Nationality}" Width="130"/>
+                            <DataGridTextColumn Header="Numero" Binding="{Binding Number}" Width="75"/>
+                            <DataGridTextColumn Header="Age" Binding="{Binding Age}" Width="65"/>
+                            <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="75"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox Width="90" ItemsSource="{Binding PageSizes}" SelectedItem="{Binding PageSize}"
+                                      Style="{StaticResource AdminComboBoxStyle}" AutomationProperties.Name="Nombre de joueuses par page"/>
+                            <TextBlock Text="{Binding Page, StringFormat=Page {0}}" Margin="12,0" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Precedente" Command="{Binding PreviousPageCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Suivante" Command="{Binding NextPageCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="6" Style="{StaticResource AdminCardStyle}"
+                    Visibility="{Binding IsEditorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Fiche joueuse" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="{Binding IdentityStatus}" Margin="0,3,0,0" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                        </StackPanel>
+                        <components:StatusBadge Grid.Column="1" Status="{Binding IsActive, StringFormat=Active : {0}}"/>
+                    </Grid>
+
+                    <WrapPanel Grid.Row="2">
+                        <StackPanel Width="210" Margin="0,0,12,12"><TextBlock Text="Prenom" Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Prenom"/></StackPanel>
+                        <StackPanel Width="210" Margin="0,0,12,12"><TextBlock Text="Nom" Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Nom"/></StackPanel>
+                        <StackPanel Width="160" Margin="0,0,12,12"><TextBlock Text="Date de naissance" Style="{StaticResource EyebrowTextStyle}"/><DatePicker Margin="0,6,0,0" SelectedDate="{Binding Birthday}" Style="{StaticResource AppDatePickerStyle}"/></StackPanel>
+                        <StackPanel Width="90" Margin="0,0,12,12"><TextBlock Text="Age" Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding Age}" Style="{StaticResource AdminTextBoxStyle}"/></StackPanel>
+                        <StackPanel Width="210" Margin="0,0,12,12"><TextBlock Text="Equipe actuelle" Style="{StaticResource EyebrowTextStyle}"/><ComboBox Margin="0,6,0,0" ItemsSource="{Binding Teams}" SelectedItem="{Binding EditTeam}" DisplayMemberPath="TeamName" Style="{StaticResource AdminComboBoxStyle}"/></StackPanel>
+                        <StackPanel Width="180" Margin="0,0,12,12"><TextBlock Text="Poste" Style="{StaticResource EyebrowTextStyle}"/><ComboBox Margin="0,6,0,0" ItemsSource="{Binding Positions}" SelectedItem="{Binding EditPosition}" DisplayMemberPath="Name" Style="{StaticResource AdminComboBoxStyle}"/></StackPanel>
+                        <StackPanel Width="200" Margin="0,0,12,12"><TextBlock Text="Nationalite" Style="{StaticResource EyebrowTextStyle}"/><ComboBox Margin="0,6,0,0" ItemsSource="{Binding Nationalities}" SelectedItem="{Binding EditNationality}" DisplayMemberPath="Name" Style="{StaticResource AdminComboBoxStyle}"/></StackPanel>
+                        <StackPanel Width="90" Margin="0,0,12,12"><TextBlock Text="Numero" Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding Number}" Style="{StaticResource AdminTextBoxStyle}"/></StackPanel>
+                        <CheckBox Content="Joueuse active" IsChecked="{Binding IsActive}" VerticalAlignment="Center" Margin="0,18,12,12"/>
+                    </WrapPanel>
+
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding MergeStatus}" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Annuler" Command="{Binding CancelEditCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Enregistrer la joueuse" Command="{Binding SavePlayerCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

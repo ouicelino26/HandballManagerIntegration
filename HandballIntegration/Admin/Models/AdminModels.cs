@@ -47,10 +47,12 @@ public sealed record AdminNavigationItem(
 
 public static class AdminModuleStatus
 {
+    public const string Available = "AVAILABLE";
     public const string FoundationReady = "FOUNDATION_READY";
     public const string ReadOnlyAvailable = "READ_ONLY_AVAILABLE";
     public const string Partial = "PARTIAL";
     public const string Blocked = "BLOCKED";
+    public const string BlockedByApi = "BLOCKED_BY_API";
     public const string NotImplemented = "NOT_IMPLEMENTED";
 }
 
@@ -61,9 +63,18 @@ public static class AdminPermissionNames
     public const string ImportsPreview = "Imports.Preview";
     public const string ImportsExecute = "Imports.Execute";
     public const string MatchesRead = "Matches.Read";
+    public const string MatchesUpdate = "Matches.Update";
+    public const string MatchesDelete = "Matches.Delete";
     public const string EventsRead = "Events.Read";
+    public const string EventsCreate = "Events.Create";
+    public const string EventsUpdate = "Events.Update";
+    public const string EventsDelete = "Events.Delete";
     public const string PlayersRead = "Players.Read";
+    public const string PlayersCreate = "Players.Create";
+    public const string PlayersUpdate = "Players.Update";
+    public const string PlayersMerge = "Players.Merge";
     public const string TeamsRead = "Teams.Read";
+    public const string TeamsManage = "Teams.Manage";
     public const string ReferenceDataManage = "ReferenceData.Manage";
     public const string DataQualityManage = "DataQuality.Manage";
     public const string AuditRead = "Audit.Read";

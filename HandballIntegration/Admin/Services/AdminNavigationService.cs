@@ -7,18 +7,20 @@ public sealed class AdminNavigationService : IAdminNavigationService
 {
     private static readonly IReadOnlyList<AdminNavigationItem> Modules =
     [
-        new("dashboard", "Accueil", "Etat de la plateforme", "01", AdminPermissionNames.DashboardRead, AdminModuleStatus.FoundationReady, true),
-        new("integration", "Integrations", "Apercu puis execution", "02", AdminPermissionNames.ImportsRead, AdminModuleStatus.Partial, true),
-        new("matches", "Matchs", "Consultation et cycle de vie", "03", AdminPermissionNames.MatchesRead, AdminModuleStatus.ReadOnlyAvailable, false),
-        new("players", "Joueuses", "Fiches et disponibilite", "04", AdminPermissionNames.PlayersRead, AdminModuleStatus.Partial, true),
-        new("teams", "Equipes", "Effectifs et identite", "05", AdminPermissionNames.TeamsRead, AdminModuleStatus.NotImplemented, false),
-        new("events", "Evenements", "Actions de match", "06", AdminPermissionNames.EventsRead, AdminModuleStatus.ReadOnlyAvailable, false),
-        new("reference-data", "Referentiels", "Valeurs partagees", "07", AdminPermissionNames.ReferenceDataManage, AdminModuleStatus.NotImplemented, false),
-        new("data-quality", "Qualite des donnees", "Conflits et corrections", "08", AdminPermissionNames.DataQualityManage, AdminModuleStatus.NotImplemented, false),
-        new("audit", "Historique et audit", "Traces administratives", "09", AdminPermissionNames.AuditRead, AdminModuleStatus.ReadOnlyAvailable, false),
-        new("maintenance", "Maintenance", "Diagnostics controles", "10", AdminPermissionNames.DashboardRead, AdminModuleStatus.NotImplemented, false),
-        new("users", "Utilisateurs et droits", "Comptes et acces", "11", AdminPermissionNames.UsersManage, AdminModuleStatus.Partial, true),
-        new("settings", "Parametres", "Environnement et versions", "12", AdminPermissionNames.DashboardRead, AdminModuleStatus.FoundationReady, false)
+        new("dashboard", "Accueil", "Etat et actions disponibles", "AC", AdminPermissionNames.DashboardRead, AdminModuleStatus.Partial, true),
+        new("integration", "Integrations", "Preview, decision et rapport", "IN", AdminPermissionNames.ImportsRead, AdminModuleStatus.Partial, true),
+        new("matches", "Matchs", "Correction et cycle de vie", "MA", AdminPermissionNames.MatchesRead, AdminModuleStatus.Partial, true),
+        new("events", "Evenements", "Depuis le contexte d'un match", "EV", AdminPermissionNames.EventsRead, AdminModuleStatus.Partial, true),
+        new("players", "Joueuses", "Identites et rattachements", "JO", AdminPermissionNames.PlayersRead, AdminModuleStatus.Partial, true),
+        new("teams", "Equipes", "Effectifs et identite", "EQ", AdminPermissionNames.TeamsRead, AdminModuleStatus.Partial, true),
+        new("reference-data", "Referentiels", "Catalogues autorises", "RE", AdminPermissionNames.ReferenceDataManage, AdminModuleStatus.Partial, true),
+        new("data-quality", "Qualite des donnees", "Anomalies et resolutions", "QU", AdminPermissionNames.DataQualityManage, AdminModuleStatus.BlockedByApi, false),
+        new("reconciliation", "Reconciliation", "Identites et conflits", "RC", AdminPermissionNames.DataQualityManage, AdminModuleStatus.BlockedByApi, false),
+        new("import-history", "Historique des imports", "Executions et rapports", "HI", AdminPermissionNames.ImportsRead, AdminModuleStatus.BlockedByApi, false),
+        new("audit", "Audit", "Traces et differences", "AU", AdminPermissionNames.AuditRead, AdminModuleStatus.Available, true),
+        new("maintenance", "Maintenance", "Diagnostics controles", "MN", AdminPermissionNames.DashboardRead, AdminModuleStatus.Partial, true),
+        new("users", "Utilisateurs et droits", "Comptes et acces", "UT", AdminPermissionNames.UsersManage, AdminModuleStatus.Partial, true),
+        new("settings", "Parametres", "Environnement et versions", "PA", AdminPermissionNames.DashboardRead, AdminModuleStatus.FoundationReady, true)
     ];
 
     public IReadOnlyList<AdminNavigationItem> Build(IReadOnlySet<string> permissions) =>

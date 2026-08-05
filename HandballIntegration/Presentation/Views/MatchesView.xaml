@@ -1,0 +1,219 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.MatchesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="14"/>
+                <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <components:AdminPageHeader Eyebrow="DONNEES DE MATCH" Title="{Binding Title}" Subtitle="{Binding Subtitle}"/>
+            <views:AdminStateView Grid.Row="2"/>
+
+            <Border Grid.Row="4" Style="{StaticResource AdminCardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="310"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <WrapPanel VerticalAlignment="Center">
+                            <TextBox Width="110" Margin="0,0,8,8" Tag="Saison" Text="{Binding Season, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Filtrer par saison"/>
+                            <TextBox Width="80" Margin="0,0,8,8" Tag="Journee" Text="{Binding Day, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Filtrer par journee"/>
+                            <ComboBox Width="180" Margin="0,0,8,8" ItemsSource="{Binding Teams}" SelectedItem="{Binding FilterTeam}"
+                                      DisplayMemberPath="TeamName" Style="{StaticResource AdminComboBoxStyle}"
+                                      AutomationProperties.Name="Filtrer par equipe"/>
+                            <DatePicker Width="140" Margin="0,0,8,8" SelectedDate="{Binding From}" Style="{StaticResource AppDatePickerStyle}"
+                                        AutomationProperties.Name="Date de debut"/>
+                            <DatePicker Width="140" Margin="0,0,8,8" SelectedDate="{Binding To}" Style="{StaticResource AppDatePickerStyle}"
+                                        AutomationProperties.Name="Date de fin"/>
+                        </WrapPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button Content="Effacer" Command="{Binding ClearFiltersCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Appliquer" Command="{Binding ApplyFiltersCommand}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding Matches}" SelectedItem="{Binding SelectedMatch}"
+                              Style="{StaticResource AdminDataGridStyle}" EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True" AutomationProperties.Name="Liste des matchs">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100"/>
+                            <DataGridTextColumn Header="Competition" Binding="{Binding CompetitionName}" Width="150"/>
+                            <DataGridTextColumn Header="Domicile" Binding="{Binding Team1Name}" Width="*"/>
+                            <DataGridTextColumn Header="Score" Binding="{Binding Team1Score}" Width="70"/>
+                            <DataGridTextColumn Header="Score" Binding="{Binding Team2Score}" Width="70"/>
+                            <DataGridTextColumn Header="Exterieur" Binding="{Binding Team2Name}" Width="*"/>
+                            <DataGridTextColumn Header="Saison" Binding="{Binding Season}" Width="100"/>
+                            <DataGridTextColumn Header="Journee" Binding="{Binding Day}" Width="85"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Button Content="Ouvrir le match selectionne" Command="{Binding OpenMatchCommand}" HorizontalAlignment="Left"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Page, StringFormat=Page {0}}" Margin="12,0" VerticalAlignment="Center"
+                                   Foreground="{StaticResource SecondaryTextBrush}"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Content="Precedente" Command="{Binding PreviousPageCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Suivante" Command="{Binding NextPageCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="6" Style="{StaticResource AdminCardStyle}"
+                    Visibility="{Binding HasDetail, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Espace de travail du match" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Margin="0,4,0,0" Foreground="{StaticResource SecondaryTextBrush}">
+                                <Run Text="Etat : "/><Run Text="{Binding Detail.State}" FontWeight="SemiBold"/>
+                                <Run Text="  |  Mis a jour le "/><Run Text="{Binding Detail.UpdatedAtUtc, StringFormat=dd/MM/yyyy HH:mm}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <components:StatusBadge Grid.Column="1" Status="{Binding Detail.Availability}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <TabControl Grid.Row="2" Background="Transparent" BorderBrush="{StaticResource BorderBrush}">
+                        <TabItem Header="Informations">
+                            <Grid Margin="16">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <WrapPanel>
+                                    <StackPanel Width="230" Margin="0,0,12,12">
+                                        <TextBlock Text="Competition" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <ComboBox Margin="0,6,0,0" ItemsSource="{Binding Competitions}" SelectedItem="{Binding EditCompetition}"
+                                                  DisplayMemberPath="CompetitionName" Style="{StaticResource AdminComboBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="230" Margin="0,0,12,12">
+                                        <TextBlock Text="Equipe a domicile" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <ComboBox Margin="0,6,0,0" ItemsSource="{Binding Teams}" SelectedItem="{Binding EditHomeTeam}"
+                                                  DisplayMemberPath="TeamName" Style="{StaticResource AdminComboBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="230" Margin="0,0,12,12">
+                                        <TextBlock Text="Equipe a l'exterieur" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <ComboBox Margin="0,6,0,0" ItemsSource="{Binding Teams}" SelectedItem="{Binding EditAwayTeam}"
+                                                  DisplayMemberPath="TeamName" Style="{StaticResource AdminComboBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="150" Margin="0,0,12,12">
+                                        <TextBlock Text="Date" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <DatePicker Margin="0,6,0,0" SelectedDate="{Binding EditDate}" Style="{StaticResource AppDatePickerStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="120" Margin="0,0,12,12">
+                                        <TextBlock Text="Saison" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,0" Text="{Binding EditSeason}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="90" Margin="0,0,12,12">
+                                        <TextBlock Text="Journee" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,0" Text="{Binding EditDay}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="100" Margin="0,0,12,12">
+                                        <TextBlock Text="Score dom." Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,0" Text="{Binding EditHomeScore}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Width="100" Margin="0,0,12,12">
+                                        <TextBlock Text="Score ext." Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,0" Text="{Binding EditAwayScore}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <TextBlock Grid.Row="2" Text="Motif obligatoire de la modification" Style="{StaticResource EyebrowTextStyle}"/>
+                                <TextBox Grid.Row="4" Text="{Binding EditReason, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Motif de modification du match"/>
+                                <Button Grid.Row="4" Content="Enregistrer avec controle de version" Command="{Binding SaveMatchCommand}"
+                                        HorizontalAlignment="Right" Margin="0,54,0,0"/>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="Evenements">
+                            <Grid Margin="16">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="250"/><RowDefinition Height="12"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Chronologie du match" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="{Binding EventCreateStatus}" Margin="0,3,0,0" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Nouvel evenement" IsEnabled="{Binding CanCreateEvent}"/>
+                                </Grid>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}"
+                                          Style="{StaticResource AdminDataGridStyle}" EnableRowVirtualization="True"
+                                          AutomationProperties.Name="Evenements du match">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Temps" Binding="{Binding Time}" Width="95"/>
+                                        <DataGridTextColumn Header="Periode" Binding="{Binding MiTemps}" Width="100"/>
+                                        <DataGridTextColumn Header="Score dom." Binding="{Binding TeamScore1}" Width="90"/>
+                                        <DataGridTextColumn Header="Score ext." Binding="{Binding TeamScore2}" Width="90"/>
+                                        <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="*"/>
+                                        <DataGridCheckBoxColumn Header="But" Binding="{Binding Goal}" Width="65"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Button Grid.Row="4" Content="Ouvrir l'evenement selectionne" Command="{Binding OpenEventCommand}" HorizontalAlignment="Left"/>
+
+                                <Border Grid.Row="5" Margin="0,14,0,0" Padding="16" CornerRadius="14" Background="{StaticResource SoftNeutralBrush}"
+                                        Visibility="{Binding HasEventDetail, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel>
+                                        <TextBlock Text="Editeur d'evenement" Style="{StaticResource SectionTitleStyle}"/>
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <StackPanel Width="190" Margin="0,0,12,12"><TextBlock Text="Type" Style="{StaticResource EyebrowTextStyle}"/><ComboBox Margin="0,6,0,0" ItemsSource="{Binding EventTypes}" SelectedItem="{Binding EditEventType}" DisplayMemberPath="Name" Style="{StaticResource AdminComboBoxStyle}"/></StackPanel>
+                                            <StackPanel Width="190" Margin="0,0,12,12"><TextBlock Text="Equipe" Style="{StaticResource EyebrowTextStyle}"/><ComboBox Margin="0,6,0,0" ItemsSource="{Binding Teams}" SelectedItem="{Binding EditEventTeam}" DisplayMemberPath="TeamName" Style="{StaticResource AdminComboBoxStyle}"/></StackPanel>
+                                            <StackPanel Width="130" Margin="0,0,12,12"><TextBlock Text="Temps (hh:mm:ss)" Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding EditEventTime, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AdminTextBoxStyle}"/></StackPanel>
+                                            <StackPanel Width="110" Margin="0,0,12,12"><TextBlock Text="Periode" Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding EditEventPeriod}" Style="{StaticResource AdminTextBoxStyle}"/></StackPanel>
+                                            <StackPanel Width="90" Margin="0,0,12,12"><TextBlock Text="Score dom." Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding EditEventHomeScore}" Style="{StaticResource AdminTextBoxStyle}"/></StackPanel>
+                                            <StackPanel Width="90" Margin="0,0,12,12"><TextBlock Text="Score ext." Style="{StaticResource EyebrowTextStyle}"/><TextBox Margin="0,6,0,0" Text="{Binding EditEventAwayScore}" Style="{StaticResource AdminTextBoxStyle}"/></StackPanel>
+                                        </WrapPanel>
+                                        <TextBlock Text="Action" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,10" Text="{Binding EditEventAction}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                        <CheckBox Content="Cet evenement est un but" IsThreeState="True" IsChecked="{Binding EditEventGoal}" Margin="0,0,0,10"/>
+                                        <TextBlock Text="Motif obligatoire" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,10" Text="{Binding EventReason, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                        <Button Content="Enregistrer l'evenement" Command="{Binding SaveEventCommand}" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="Archivage et impact">
+                            <Grid Margin="16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Cycle de vie du match" Style="{StaticResource SectionTitleStyle}"/>
+                                    <TextBlock Text="Chargez toujours l'impact avant une action. Aucun DELETE n'est execute sans motif et confirmation forte."
+                                               Margin="0,4,0,12" TextWrapping="Wrap" Foreground="{StaticResource SecondaryTextBrush}"/>
+                                    <Button Content="Analyser l'impact" Command="{Binding AnalyzeMatchImpactCommand}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}"/>
+                                    <DataGrid Margin="0,12,0,0" Height="180" ItemsSource="{Binding Impact.Dependencies}" Style="{StaticResource AdminDataGridStyle}" EnableRowVirtualization="True">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Categorie" Binding="{Binding Category}" Width="130"/>
+                                            <DataGridTextColumn Header="Dependance" Binding="{Binding Description}" Width="*"/>
+                                            <DataGridTextColumn Header="Volume" Binding="{Binding Count}" Width="70"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                                <Border Grid.Column="2" Padding="16" CornerRadius="14" Background="{StaticResource DangerSoftBrush}">
+                                    <StackPanel>
+                                        <TextBlock Text="Zone controlee" Style="{StaticResource SectionTitleStyle}" Foreground="{StaticResource DangerBrush}"/>
+                                        <TextBlock Text="Motif" Margin="0,12,0,0" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,10" Text="{Binding LifecycleReason, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                        <TextBlock Text="Saisir ARCHIVER ou RESTAURER" Style="{StaticResource EyebrowTextStyle}"/>
+                                        <TextBox Margin="0,6,0,12" Text="{Binding ConfirmationPhrase, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AdminTextBoxStyle}"/>
+                                        <WrapPanel>
+                                            <Button Content="Archiver" Command="{Binding ArchiveMatchCommand}" Style="{StaticResource DangerButtonStyle}" Margin="0,0,8,8"/>
+                                            <Button Content="Restaurer" Command="{Binding RestoreMatchCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,8"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

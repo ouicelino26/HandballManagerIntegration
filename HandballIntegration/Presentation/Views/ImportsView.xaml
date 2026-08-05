@@ -1,0 +1,187 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.ImportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="14"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <components:AdminPageHeader Eyebrow="IMPORT TRANSACTIONNEL" Title="{Binding Title}"
+                                        Subtitle="{Binding Subtitle}"/>
+            <views:AdminStateView Grid.Row="2"/>
+
+            <Border Grid.Row="4" Style="{StaticResource AdminCardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="1. Source et contexte" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Le fichier reste local jusqu'a la demande de previsualisation."
+                                       Style="{StaticResource BodyTextStyle}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Choisir un fichier XLSX" Command="{Binding SelectFileCommand}"
+                                AutomationProperties.Name="Choisir le fichier Excel a previsualiser"/>
+                    </Grid>
+
+                    <Border Grid.Row="2" Padding="14" CornerRadius="12" Background="{StaticResource SoftNeutralBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="Classeur Excel selectionne" Margin="0,3,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}" FontSize="11"/>
+                            </StackPanel>
+                            <components:StatusBadge Grid.Column="1" Status="{Binding FileSize}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.4*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Competition" Style="{StaticResource EyebrowTextStyle}"/>
+                            <ComboBox Margin="0,6,0,0" ItemsSource="{Binding Competitions}"
+                                      SelectedItem="{Binding SelectedCompetition}" DisplayMemberPath="CompetitionName"
+                                      Style="{StaticResource AdminComboBoxStyle}"
+                                      AutomationProperties.Name="Competition du match"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Saison" Style="{StaticResource EyebrowTextStyle}"/>
+                            <ComboBox Margin="0,6,0,0" ItemsSource="{Binding Seasons}" SelectedItem="{Binding Season}"
+                                      Style="{StaticResource AdminComboBoxStyle}" AutomationProperties.Name="Saison"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Journee" Style="{StaticResource EyebrowTextStyle}"/>
+                            <ComboBox Margin="0,6,0,0" ItemsSource="{Binding Days}" SelectedItem="{Binding Day}"
+                                      Style="{StaticResource AdminComboBoxStyle}" AutomationProperties.Name="Journee"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Text="Date du match" Style="{StaticResource EyebrowTextStyle}"/>
+                            <DatePicker Margin="0,6,0,0" SelectedDate="{Binding MatchDate}"
+                                        Style="{StaticResource AppDatePickerStyle}"
+                                        AutomationProperties.Name="Date du match"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="6" Style="{StaticResource AdminCardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="2-4. Mapping, validation et preview" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="La preview detecte doublons, erreurs et volume sans ecrire en base."
+                                       Style="{StaticResource BodyTextStyle}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Reinitialiser" Command="{Binding ResetCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Previsualiser" Command="{Binding PreviewCommand}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Visibility="{Binding HasPreview, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <UniformGrid Columns="2">
+                                <Border Margin="0,0,8,8" Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel><TextBlock Text="{Binding Preview.ProposedCreates}" Style="{StaticResource MetricValueTextStyle}"/><TextBlock Text="Creations proposees" Style="{StaticResource MetricLabelTextStyle}"/></StackPanel>
+                                </Border>
+                                <Border Margin="0,0,0,8" Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel><TextBlock Text="{Binding Preview.ProposedUpdates}" Style="{StaticResource MetricValueTextStyle}"/><TextBlock Text="Mises a jour" Style="{StaticResource MetricLabelTextStyle}"/></StackPanel>
+                                </Border>
+                                <Border Margin="0,0,8,0" Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel><TextBlock Text="{Binding Preview.ProposedSkips}" Style="{StaticResource MetricValueTextStyle}"/><TextBlock Text="Lignes ignorees" Style="{StaticResource MetricLabelTextStyle}"/></StackPanel>
+                                </Border>
+                                <Border Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel><TextBlock Text="{Binding Preview.DuplicateStatus}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Statut doublon" Style="{StaticResource MetricLabelTextStyle}"/></StackPanel>
+                                </Border>
+                            </UniformGrid>
+                            <TextBlock Text="{Binding Preview.ExpectedSummary}" Margin="0,12,0,0" TextWrapping="Wrap"
+                                       Foreground="{StaticResource SecondaryTextBrush}"/>
+                        </StackPanel>
+                        <DataGrid Grid.Column="2" ItemsSource="{Binding Preview.BlockingIssues}" Style="{StaticResource AdminDataGridStyle}"
+                                  MaxHeight="250" EnableRowVirtualization="True" AutomationProperties.Name="Erreurs bloquantes de la preview">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Ligne" Binding="{Binding Row}" Width="70"/>
+                                <DataGridTextColumn Header="Champ" Binding="{Binding Field}" Width="120"/>
+                                <DataGridTextColumn Header="Probleme" Binding="{Binding Message}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="8" Style="{StaticResource AdminCardStyle}"
+                    Visibility="{Binding HasPreview, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="5-6. Decision et execution" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="Expliquez la raison, puis saisissez exactement INTEGRER. L'execution n'est jamais automatique."
+                                   Style="{StaticResource BodyTextStyle}" Margin="0,4,0,12" TextWrapping="Wrap"/>
+                        <TextBlock Text="Motif" Style="{StaticResource EyebrowTextStyle}"/>
+                        <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"
+                                 Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.Name="Motif de l'import"/>
+                        <TextBlock Text="Confirmation" Style="{StaticResource EyebrowTextStyle}"/>
+                        <TextBox Text="{Binding Confirmation, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"
+                                 Style="{StaticResource AdminTextBoxStyle}" AutomationProperties.HelpText="Saisir INTEGRER"/>
+                        <Button Content="Executer l'import" Command="{Binding ExecuteCommand}" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Padding="16" CornerRadius="14" Background="{StaticResource AccentAltSoftBrush}">
+                        <StackPanel>
+                            <TextBlock Text="7. Rapport transactionnel" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Le rapport apparait uniquement apres une execution confirmee."
+                                       Margin="0,4,0,14" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+                            <StackPanel Visibility="{Binding HasExecution, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <components:StatusBadge Status="{Binding Execution.Status}" HorizontalAlignment="Left"/>
+                                <TextBlock Margin="0,12,0,0" Text="{Binding Execution.Created, StringFormat=Crees : {0}}"/>
+                                <TextBlock Margin="0,4,0,0" Text="{Binding Execution.Updated, StringFormat=Mis a jour : {0}}"/>
+                                <TextBlock Margin="0,4,0,0" Text="{Binding Execution.Skipped, StringFormat=Ignores : {0}}"/>
+                                <TextBlock Margin="0,4,0,0" Text="{Binding Execution.Rejected, StringFormat=Rejetes : {0}}"/>
+                                <TextBlock Margin="0,8,0,0" Text="{Binding Execution.RolledBack, StringFormat=Rollback : {0}}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

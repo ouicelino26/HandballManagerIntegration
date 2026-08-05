@@ -1,0 +1,32 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.TeamsAdminView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="14"/><RowDefinition Height="Auto"/><RowDefinition Height="16"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <components:AdminPageHeader Eyebrow="CLUBS ET EFFECTIFS" Title="{Binding Title}" Subtitle="{Binding Subtitle}"/>
+        <views:AdminStateView Grid.Row="2"/>
+        <Border Grid.Row="4" Style="{StaticResource AdminCardStyle}">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Equipes connues" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="{Binding WriteAvailability.Message}" Margin="0,3,0,0" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                    </StackPanel>
+                    <components:StatusBadge Grid.Column="1" Status="{Binding WriteAvailability.Status}"/>
+                </Grid>
+                <DataGrid Grid.Row="2" ItemsSource="{Binding Teams}" Style="{StaticResource AdminDataGridStyle}"
+                          EnableRowVirtualization="True" EnableColumnVirtualization="True" AutomationProperties.Name="Liste des equipes">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Equipe" Binding="{Binding TeamName}" Width="*"/>
+                        <DataGridTextColumn Header="Code" Binding="{Binding TeamCode}" Width="150"/>
+                        <DataGridTextColumn Header="Joueuses" Binding="{Binding PlayerCount}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
