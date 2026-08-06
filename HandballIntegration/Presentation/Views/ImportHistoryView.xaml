@@ -1,0 +1,63 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.ImportHistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="16"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <components:AdminPageHeader Eyebrow="IMPORTS" Title="{Binding Title}" Subtitle="{Binding Subtitle}"/>
+        <views:AdminStateView Grid.Row="2"/>
+        <Border Grid.Row="4" Style="{StaticResource AdminCardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <WrapPanel>
+                        <ComboBox Width="140" Margin="0,0,8,0"
+                                  ItemsSource="{Binding StatusOptions}"
+                                  SelectedItem="{Binding StatusFilter}"
+                                  Style="{StaticResource AdminComboBoxStyle}"/>
+                        <ComboBox Width="90" ItemsSource="{Binding PageSizes}" SelectedItem="{Binding PageSize}" Style="{StaticResource AdminComboBoxStyle}"/>
+                    </WrapPanel>
+                    <Button Grid.Column="1" Content="Rechercher" Command="{Binding ApplyFiltersCommand}"/>
+                </Grid>
+                <DataGrid Grid.Row="2"
+                          ItemsSource="{Binding Imports}"
+                          SelectedItem="{Binding SelectedImport}"
+                          Style="{StaticResource AdminDataGridStyle}"
+                          EnableRowVirtualization="True"
+                          AutomationProperties.Name="Historique des imports">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Date" Binding="{Binding StartedAtUtc, StringFormat=dd/MM/yyyy HH:mm}" Width="135"/>
+                        <DataGridTextColumn Header="Statut" Binding="{Binding Status}" Width="110"/>
+                        <DataGridTextColumn Header="Fichier" Binding="{Binding FileName}" Width="*"/>
+                        <DataGridTextColumn Header="Importes" Binding="{Binding RowsImported}" Width="80"/>
+                        <DataGridTextColumn Header="Rejetes" Binding="{Binding RowsFailed}" Width="75"/>
+                        <DataGridTextColumn Header="ID utilisateur" Binding="{Binding UserId}" Width="120"/>
+                        <DataGridTextColumn Header="Erreur" Binding="{Binding ErrorMessage}" Width="160"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Page, StringFormat=Page {0}}" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="Precedente" Command="{Binding PreviousPageCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                        <Button Content="Suivante" Command="{Binding NextPageCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -16,7 +16,7 @@ public sealed class AdminNavigationService : IAdminNavigationService
         new("reference-data", "Referentiels", "Catalogues autorises", "RE", AdminPermissionNames.ReferenceDataManage, AdminModuleStatus.Partial, true),
         new("data-quality", "Qualite des donnees", "Anomalies et resolutions", "QU", AdminPermissionNames.DataQualityManage, AdminModuleStatus.BlockedByApi, false),
         new("reconciliation", "Reconciliation", "Identites et conflits", "RC", AdminPermissionNames.DataQualityManage, AdminModuleStatus.BlockedByApi, false),
-        new("import-history", "Historique des imports", "Executions et rapports", "HI", AdminPermissionNames.ImportsRead, AdminModuleStatus.BlockedByApi, false),
+        new("import-history", "Historique des imports", "Executions et rapports", "HI", AdminPermissionNames.ImportsRead, AdminModuleStatus.Available, true),
         new("audit", "Audit", "Traces et differences", "AU", AdminPermissionNames.AuditRead, AdminModuleStatus.Available, true),
         new("maintenance", "Maintenance", "Diagnostics controles", "MN", AdminPermissionNames.DashboardRead, AdminModuleStatus.Partial, true),
         new("users", "Utilisateurs et droits", "Comptes et acces", "UT", AdminPermissionNames.UsersManage, AdminModuleStatus.Partial, true),

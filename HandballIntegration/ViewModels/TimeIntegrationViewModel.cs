@@ -198,7 +198,12 @@ namespace HandballIntegration.ViewModels
                     PlayerId = player.Id,
                     SourceFile = Path.GetFileName(file.FullPath),
                     SourceSheet = "Feuil1",
-                    SourceRow = row.RowNumber
+                    SourceRow = row.RowNumber,
+                    Version = 1,
+                    ConcurrencyToken = Guid.NewGuid(),
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedBy = "integration-client",
+                    IsDeleted = false
                 };
 
                 var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload);

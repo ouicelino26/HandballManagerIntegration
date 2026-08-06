@@ -46,8 +46,8 @@
                             <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100"/>
                             <DataGridTextColumn Header="Competition" Binding="{Binding CompetitionName}" Width="150"/>
                             <DataGridTextColumn Header="Domicile" Binding="{Binding Team1Name}" Width="*"/>
-                            <DataGridTextColumn Header="Score" Binding="{Binding Team1Score}" Width="70"/>
-                            <DataGridTextColumn Header="Score" Binding="{Binding Team2Score}" Width="70"/>
+                            <DataGridTextColumn Header="Score dom." Binding="{Binding Team1Score}" Width="70"/>
+                            <DataGridTextColumn Header="Score ext." Binding="{Binding Team2Score}" Width="70"/>
                             <DataGridTextColumn Header="Exterieur" Binding="{Binding Team2Name}" Width="*"/>
                             <DataGridTextColumn Header="Saison" Binding="{Binding Season}" Width="100"/>
                             <DataGridTextColumn Header="Journee" Binding="{Binding Day}" Width="85"/>

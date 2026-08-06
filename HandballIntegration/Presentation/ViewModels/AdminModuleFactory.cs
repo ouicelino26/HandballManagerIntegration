@@ -34,14 +34,7 @@ public sealed class AdminModuleFactory(IServiceProvider services) : IAdminModule
                 "BLOCKED_BY_API",
                 "GET/POST /api/v2/admin/reconciliation",
                 "Les files de reconciliation et leur resolution auditee ne sont pas exposees.")),
-        "import-history" => Blocked(
-            "Historique des imports",
-            "Les anciens imports ne sont jamais reexecutes automatiquement.",
-            new AdminApiAvailability(
-                false,
-                "BLOCKED_BY_API",
-                "GET /api/v2/admin/imports",
-                "L'API execute les previews mais ne fournit pas encore la liste des executions.")),
+        "import-history" => services.GetRequiredService<ImportHistoryViewModel>(),
         _ => Blocked(
             "Module indisponible",
             "Le module demande n'est pas configure.",

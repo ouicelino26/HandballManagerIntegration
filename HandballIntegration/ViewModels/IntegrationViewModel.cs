@@ -136,11 +136,15 @@ public partial class IntegrationViewModel : ObservableObject
             });
 
             file.Status = IntegrationStatus.Success;
-            file.StatusMessage = "Fichier intégré ✔";
+            file.StatusMessage = "Fichier integre ✔";
+        }
+        catch (PartialIntegrationException pex)
+        {
+            file.Status = IntegrationStatus.Error;
+            file.StatusMessage = "Partiel : " + pex.Message;
         }
         catch (Exception ex)
         {
-            //var personne = dto.PlayerId;
             file.Status = IntegrationStatus.Error;
             file.StatusMessage = "Erreur : " + ex.Message;
         }
@@ -201,7 +205,7 @@ public partial class IntegrationViewModel : ObservableObject
 
         var newMatch = new Match
         {
-            CompetitionId = 1,
+            CompetitionId = _settings.DefaultCompetitionId,
             Date = file.MatchInfo.Date,
             Team1Id = team1Id.Value,
             Team2Id = team2Id.Value,
@@ -241,6 +245,8 @@ public partial class IntegrationViewModel : ObservableObject
             ?? throw new Exception("La creation du match a reussi mais la reponse est vide.");
 
         file.StatusMessage = "Importation evenements...";
+        int eventsOk = 0;
+        int eventsFailed = 0;
         foreach (var preparedEvent in preparedEvents)
         {
             preparedEvent.MatchEvent.MatchId = createdMatch.Id;
@@ -249,37 +255,48 @@ public partial class IntegrationViewModel : ObservableObject
 
             if (!resp.IsSuccessStatusCode)
             {
+                eventsFailed++;
                 var body = await resp.Content.ReadAsStringAsync();
-
                 var sentJson = System.Text.Json.JsonSerializer.Serialize(
                     preparedEvent.MatchEvent,
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
 
-                var log =
-            $"""
+                File.AppendAllText("integration_errors.log",
+                    $"""
                     ==============================
                     {DateTime.Now}
-                    
                     ROUTE : POST api/MatchEvents
                     STATUS : {(int)resp.StatusCode} {resp.ReasonPhrase}
-                    
+                    MATCH : #{createdMatch.Id}
+                    ROW : {preparedEvent.SourceRowIndex}
                     ----- OBJET ENVOYE -----
                     {sentJson}
-                    
                     ----- REPONSE API -----
                     {body}
-                    
                     ==============================
-                    
-                    """;
 
-                File.AppendAllText("integration_errors.log", log);
-
+                    """);
                 continue;
             }
 
-            resp.EnsureSuccessStatusCode();
+            eventsOk++;
         }
+
+        int skippedRows = rows.Count - preparedEvents.Count;
+        var summary = new System.Text.StringBuilder();
+        summary.Append($"Match #{createdMatch.Id} integre — {eventsOk}/{preparedEvents.Count} evenements");
+        if (eventsFailed > 0)
+            summary.Append($" — ATTENTION : {eventsFailed} evenement(s) rejetes par l'API (voir integration_errors.log)");
+        if (skippedRows > 0)
+            summary.Append($" — {skippedRows} ligne(s) ignoree(s) (joueurs/equipes inconnus, voir integration_skips.log)");
+
+        if (eventsFailed > 0 || skippedRows > 0)
+            throw new PartialIntegrationException(summary.ToString());
+    }
+
+    private sealed class PartialIntegrationException : Exception
+    {
+        public PartialIntegrationException(string message) : base(message) { }
     }
        
 
@@ -534,7 +551,32 @@ public partial class IntegrationViewModel : ObservableObject
     {
         foreach (var update in updates)
         {
-            bool success = await _playersApiService.UpdatePlayerTeamAsync(update.PlayerId, update.TeamId);
+            bool success;
+            var src = update.SourcePlayer;
+            if (src != null)
+            {
+                // PUT complet pour ne pas ecraser les autres champs de la joueuse
+                var nameParts = src.FullName?.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                success = await _playersApiService.UpdatePlayerAsync(new PlayersApiService.PlayerEditionRequest
+                {
+                    PlayerId = update.PlayerId,
+                    FirstName = nameParts?.Length > 0 ? nameParts[0] : string.Empty,
+                    LastName = nameParts?.Length > 1 ? nameParts[1] : string.Empty,
+                    Birthday = src.Birthday,
+                    Age = src.Age,
+                    PositionId = src.PositionId,
+                    TeamId = update.TeamId,
+                    NationalityId = null, // PlayerListItemDto n'expose pas NationalityId, uniquement le libelle
+
+                    Number = src.Number,
+                    IsActive = src.IsActive
+                });
+            }
+            else
+            {
+                success = await _playersApiService.UpdatePlayerTeamAsync(update.PlayerId, update.TeamId);
+            }
+
             if (!success)
             {
                 throw new Exception(
@@ -549,10 +591,49 @@ public partial class IntegrationViewModel : ObservableObject
     private async Task<int?> ApiResolveTeamId(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        var resp = await _http.GetAsync($"{_settings.ApiBaseUrl}teams/byname/{Uri.EscapeDataString(name)}");
-        
-        if (!resp.IsSuccessStatusCode) return null;
-        return (await resp.Content.ReadFromJsonAsync<Team>())?.Id;
+
+        // 1. Correspondance exacte (case-insensitive)
+        var resp = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Teams/byname/{Uri.EscapeDataString(name.Trim())}");
+        if (resp.IsSuccessStatusCode)
+        {
+            var team = await resp.Content.ReadFromJsonAsync<Team>();
+            if (team?.Id > 0) return team.Id;
+        }
+
+        // 2. Fallback Contains via route admin (nom approximatif, accents, abreviations)
+        var searchResp = await _http.GetAsync(
+            $"{_settings.ApiBaseUrl}api/v2/admin/teams?search={Uri.EscapeDataString(name.Trim())}&pageSize=10");
+        if (!searchResp.IsSuccessStatusCode) return null;
+
+        var page = await searchResp.Content.ReadFromJsonAsync<AdminTeamSearchResult>();
+        var candidates = page?.Items ?? [];
+        if (candidates.Count == 0) return null;
+
+        // Exact match insensible aux accents en priorité
+        var normalizedInput = NormalizeNameForCompare(name);
+        var exact = candidates.FirstOrDefault(t =>
+            NormalizeNameForCompare(t.Name) == normalizedInput);
+        if (exact != null) return exact.Id;
+
+        // Si unique résultat, on le prend
+        if (candidates.Count == 1) return candidates[0].Id;
+
+        // Si plusieurs, on prend le plus proche par longueur de nom
+        return candidates
+            .OrderBy(t => Math.Abs(t.Name.Length - name.Trim().Length))
+            .First().Id;
+    }
+
+    private sealed class AdminTeamSearchResult
+    {
+        public List<AdminTeamItem> Items { get; set; } = [];
+        public int Total { get; set; }
+    }
+
+    private sealed class AdminTeamItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
     public async Task<int?> ApiResolveIdEvent(string baseUrl, string name)
     {
@@ -940,7 +1021,8 @@ public partial class IntegrationViewModel : ObservableObject
             TeamId = currentTeamId,
             TeamName = string.IsNullOrWhiteSpace(currentTeamName)
                 ? currentTeamId.ToString(CultureInfo.InvariantCulture)
-                : currentTeamName.Trim()
+                : currentTeamName.Trim(),
+            SourcePlayer = resolvedPlayer
         };
     }
 
@@ -1193,6 +1275,7 @@ public partial class IntegrationViewModel : ObservableObject
         public int TeamId { get; set; }
         public string PlayerName { get; set; } = string.Empty;
         public string TeamName { get; set; } = string.Empty;
+        public PlayerListItemDto? SourcePlayer { get; set; }
     }
     private void LogSimple(string msg)
     {

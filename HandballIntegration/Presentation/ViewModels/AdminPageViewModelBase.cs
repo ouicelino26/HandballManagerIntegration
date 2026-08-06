@@ -46,6 +46,7 @@ public abstract class AdminPageViewModelBase : ObservableObject, IAdminModuleVie
             OnPropertyChanged(nameof(IsLoading));
             OnPropertyChanged(nameof(HasContent));
             OnPropertyChanged(nameof(HasBlockingState));
+            OnPropertyChanged(nameof(IsLoadingOrBlocked));
             RefreshCommand.NotifyCanExecuteChanged();
         }
     }
@@ -55,6 +56,7 @@ public abstract class AdminPageViewModelBase : ObservableObject, IAdminModuleVie
     public bool HasBlockingState => State.Kind is AdminPageStateKind.Empty or AdminPageStateKind.Error or
         AdminPageStateKind.Forbidden or AdminPageStateKind.Conflict or AdminPageStateKind.Offline or
         AdminPageStateKind.Cancelled;
+    public bool IsLoadingOrBlocked => IsLoading || HasBlockingState;
 
     public virtual Task InitializeAsync(CancellationToken cancellationToken = default) =>
         RefreshAsync(cancellationToken);
@@ -97,8 +99,11 @@ public abstract class AdminPageViewModelBase : ObservableObject, IAdminModuleVie
                     exception.Error.CorrelationId);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.IO.File.AppendAllText(
+                @"C:\Users\donovan.bierque\Desktop\wpf-crash.log",
+                $"[{DateTime.Now:HH:mm:ss}] MODULE_LOAD_ERROR ({GetType().Name}): {ex}\n\n");
             if (version == _requestVersion)
             {
                 State = AdminPageState.FromError(

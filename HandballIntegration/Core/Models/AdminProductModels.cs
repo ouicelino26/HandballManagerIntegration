@@ -327,6 +327,10 @@ public sealed record AdminUserUpdate(
     string? Role,
     bool? IsActive);
 
+public sealed record AdminUserRolesUpdate(string Role, string Reason);
+
+public sealed record AdminUserStatusUpdate(bool IsActive, string Reason);
+
 public sealed record AdminApiAvailability(
     bool IsAvailable,
     string Status,
@@ -408,9 +412,20 @@ public sealed record AdminUserDto(
     public bool IsActive => string.Equals(Status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
 }
 
+public sealed record AdminImportExecutionSummaryDto(
+    Guid ImportExecutionId,
+    string IdempotencyKey,
+    string Status,
+    DateTime StartedAtUtc,
+    DateTime? CompletedAtUtc,
+    string UserId,
+    string? FileName,
+    string? Sha256,
+    string? ErrorCode);
+
 public sealed record AdminDashboardDto(
-    int RecentImports,
-    int FailedImports,
+    IReadOnlyList<AdminImportExecutionSummaryDto> RecentImports,
+    long FailedImports,
     long MatchesTotal,
     long EventsTotal,
     long PlayersTotal,
@@ -420,6 +435,7 @@ public sealed record AdminDashboardDto(
 
 public sealed record AdminImportExecutionListItemDto(
     Guid Id,
+    string IdempotencyKey,
     string Status,
     DateTime StartedAtUtc,
     DateTime? CompletedAtUtc,

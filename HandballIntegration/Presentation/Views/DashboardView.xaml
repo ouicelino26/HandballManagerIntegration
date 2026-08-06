@@ -48,7 +48,87 @@
                 </Border>
             </Grid>
 
-            <ItemsControl Grid.Row="4" ItemsSource="{Binding Actions}">
+            <Grid Grid.Row="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="18"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="18"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <!-- Compteurs BDD -->
+                <UniformGrid Grid.Row="0" Rows="1" Columns="4">
+                    <Border Margin="0,0,8,0" Style="{StaticResource AdminCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="MATCHS" Style="{StaticResource EyebrowTextStyle}"/>
+                            <TextBlock Text="{Binding MatchesTotal}" FontSize="28" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Margin="0,0,8,0" Style="{StaticResource AdminCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="EVENEMENTS" Style="{StaticResource EyebrowTextStyle}"/>
+                            <TextBlock Text="{Binding EventsTotal}" FontSize="28" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Margin="0,0,8,0" Style="{StaticResource AdminCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="JOUEUSES ACTIVES" Style="{StaticResource EyebrowTextStyle}"/>
+                            <TextBlock Text="{Binding PlayersTotal}" FontSize="28" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource AdminCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="EQUIPES" Style="{StaticResource EyebrowTextStyle}"/>
+                            <TextBlock Text="{Binding TeamsTotal}" FontSize="28" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+                <!-- 5 derniers imports -->
+                <Border Grid.Row="2" Style="{StaticResource AdminCardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="10"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="5 derniers imports" Style="{StaticResource SectionTitleStyle}"/>
+                            <Border Grid.Column="1" Padding="8,4" CornerRadius="8" Background="#FFEDED"
+                                    Visibility="{Binding FailedImports, Converter={StaticResource IntToVisibilityConverter}}">
+                                <TextBlock Text="{Binding FailedImports, StringFormat={}{0} echec(s) / 30j}"
+                                           Foreground="#C0392B" FontSize="11" FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+                        <ItemsControl Grid.Row="2" ItemsSource="{Binding RecentImports}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,4,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding StartedAtUtc, StringFormat=dd/MM/yyyy HH:mm}"
+                                                   Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
+                                        <Border Grid.Column="1" Padding="6,2" CornerRadius="6"
+                                                Margin="4,0" HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentBrush}"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="2" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" FontSize="12"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding UserId}" FontSize="12"
+                                                   Foreground="{StaticResource SecondaryTextBrush}" TextAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+                <!-- Actions -->
+                <ItemsControl Grid.Row="4" ItemsSource="{Binding Actions}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
@@ -70,13 +150,14 @@
                                 </Grid>
                                 <TextBlock Grid.Row="1" Margin="0,12,0,14" Text="{Binding Description}" TextWrapping="Wrap"
                                            Foreground="{StaticResource SecondaryTextBrush}"/>
-                                <TextBlock Grid.Row="2" Text="Ouvrir depuis le menu" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentBrush}"/>
+                                <TextBlock Grid.Row="2" Text="Accessible depuis le menu" FontSize="11"
+                                           Foreground="{StaticResource MutedTextBrush}"/>
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </UserControl>
