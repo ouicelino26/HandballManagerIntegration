@@ -25,6 +25,13 @@ namespace HandballIntegration
 
         public App()
         {
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            {
+                System.IO.File.AppendAllText(
+                    @"C:\Users\donovan.bierque\Desktop\wpf-crash.log",
+                    $"[{DateTime.Now:HH:mm:ss}] STARTUP_CRASH: {args.ExceptionObject}\n\n");
+            };
+
             AppHost = Host.CreateDefaultBuilder()
                 .ConfigureAppConfiguration(config =>
                 {
@@ -70,6 +77,7 @@ namespace HandballIntegration
                     services.AddTransient<IAdminPlayerApiClient, AdminPlayerApiClient>();
                     services.AddTransient<IAdminTeamApiClient, AdminTeamApiClient>();
                     services.AddTransient<IAdminReferenceDataApiClient, AdminReferenceDataApiClient>();
+                    services.AddTransient<IAdminImportHistoryApiClient, AdminImportHistoryApiClient>();
                     services.AddSingleton<IAdminDataQualityApiClient, AdminDataQualityApiClient>();
                     services.AddTransient<IAdminAuditApiClient, AdminAuditApiClient>();
                     services.AddTransient<IAdminMaintenanceApiClient, AdminMaintenanceApiClient>();
@@ -83,8 +91,10 @@ namespace HandballIntegration
                     services.AddTransient<TeamsAdminViewModel>();
                     services.AddTransient<ReferenceDataViewModel>();
                     services.AddTransient<AuditViewModel>();
+                    services.AddTransient<ImportHistoryViewModel>();
                     services.AddTransient<UsersAdminViewModel>();
                     services.AddTransient<SettingsViewModel>();
+                    services.AddTransient<LegacyIntegrationViewModel>();
                     services.AddTransient<AdminShellViewModel>();
                     services.AddTransient<LoginViewModel>();
 
@@ -102,6 +112,14 @@ namespace HandballIntegration
         protected override async void OnStartup(StartupEventArgs e)
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            DispatcherUnhandledException += (_, args) =>
+            {
+                System.IO.File.AppendAllText(
+                    @"C:\Users\donovan.bierque\Desktop\wpf-crash.log",
+                    $"[{DateTime.Now:HH:mm:ss}] {args.Exception}\n\n");
+                args.Handled = false;
+            };
 
             base.OnStartup(e);
             await AppHost.StartAsync();

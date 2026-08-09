@@ -135,13 +135,21 @@ namespace HandballIntegration.ViewModels
                 throw new Exception("Aucun match existant ne correspond a cette saison, cette journee et ces equipes.");
             }
 
-            var existingTimeRows = await _http.GetFromJsonAsync<List<TimePlayers>>(
-                $"{_settings.ApiBaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}")
-                ?? new List<TimePlayers>();
-
-            if (existingTimeRows.Any(item => item.MatchId == existingMatch.MatchId))
+            var checkResp = await _http.GetAsync(
+                $"{_settings.ApiBaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}");
+            if (checkResp.IsSuccessStatusCode)
             {
-                throw new Exception($"Des temps de jeu sont deja integres pour le match #{existingMatch.MatchId}.");
+                var existingTimeRows = await checkResp.Content.ReadFromJsonAsync<List<TimePlayers>>()
+                    ?? new List<TimePlayers>();
+                if (existingTimeRows.Any(item => item.MatchId == existingMatch.MatchId))
+                {
+                    throw new Exception($"Des temps de jeu sont deja integres pour le match #{existingMatch.MatchId}.");
+                }
+            }
+            else
+            {
+                var errBody = await checkResp.Content.ReadAsStringAsync();
+                LogSimple($"GET TimePlayers?matchId={existingMatch.MatchId} => {(int)checkResp.StatusCode}: {errBody} — verification ignoree, import continue");
             }
 
             file.StatusMessage = "Lecture de Feuil1...";
@@ -198,7 +206,12 @@ namespace HandballIntegration.ViewModels
                     PlayerId = player.Id,
                     SourceFile = Path.GetFileName(file.FullPath),
                     SourceSheet = "Feuil1",
-                    SourceRow = row.RowNumber
+                    SourceRow = row.RowNumber,
+                    Version = 1,
+                    ConcurrencyToken = Guid.NewGuid(),
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedBy = "integration-client",
+                    IsDeleted = false
                 };
 
                 var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload);

@@ -10,6 +10,6 @@ namespace HandballIntegration.Data
             public string ApplicationName { get; set; } = "HandWStat Administration";
             public string EnvironmentLabel { get; set; } = "Unknown";
             public int TimeoutSeconds { get; set; } = 30;
-         
+        public int DefaultCompetitionId { get; set; } = 1;
     }
 }

@@ -22,7 +22,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     private AdminDeletionImpact? _impact;
     private AdminDeletionImpact? _eventImpact;
     private int _page = 1;
-    private int _pageSize = 25;
+    private int _pageSize = 50;
     private string? _season;
     private string? _day;
     private AdminTeamListItemDto? _filterTeam;
@@ -85,7 +85,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     public ObservableCollection<AdminTeamListItemDto> Teams { get; } = [];
     public ObservableCollection<CompetitionDto> Competitions { get; } = [];
     public ObservableCollection<LookupItemDto> EventTypes { get; } = [];
-    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100];
+    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100, 200];
     public IAsyncRelayCommand OpenMatchCommand { get; }
     public IAsyncRelayCommand SaveMatchCommand { get; }
     public IAsyncRelayCommand AnalyzeMatchImpactCommand { get; }

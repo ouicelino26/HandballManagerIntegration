@@ -148,6 +148,17 @@ public interface IAdminReferenceDataApiClient
     AdminApiAvailability WriteAvailability { get; }
 }
 
+public interface IAdminImportHistoryApiClient
+{
+    Task<AdminPageResult<AdminImportExecutionListItemDto>> GetImportsAsync(
+        int page = 1,
+        int pageSize = 50,
+        string? status = null,
+        DateTime? from = null,
+        DateTime? to = null,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IAdminDataQualityApiClient
 {
     AdminApiAvailability Availability { get; }
@@ -180,5 +191,15 @@ public interface IAdminUsersApiClient
     Task<AdminUserDto> UpdateUserAsync(
         int userId,
         AdminUserUpdate request,
+        CancellationToken cancellationToken = default);
+    Task<AdminUserDto> UpdateRoleAsync(
+        int userId,
+        string role,
+        string reason,
+        CancellationToken cancellationToken = default);
+    Task<AdminUserDto> UpdateStatusAsync(
+        int userId,
+        bool isActive,
+        string reason,
         CancellationToken cancellationToken = default);
 }

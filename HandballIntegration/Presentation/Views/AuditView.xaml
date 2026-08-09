@@ -27,8 +27,8 @@
                             <DataGridTextColumn Header="Date UTC" Binding="{Binding TimestampUtc, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="145"/>
                             <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="130"/>
                             <DataGridTextColumn Header="Entite" Binding="{Binding EntityType}" Width="120"/>
-                            <DataGridTextColumn Header="Utilisateur" Binding="{Binding UserId}" Width="120"/>
-                            <DataGridCheckBoxColumn Header="Succes" Binding="{Binding Success}" Width="70"/>
+                            <DataGridTextColumn Header="ID utilisateur" Binding="{Binding UserId}" Width="120"/>
+                            <DataGridCheckBoxColumn Header="Succes" Binding="{Binding Success, Mode=OneWay}" Width="70"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <Border Grid.Column="2" Padding="14" CornerRadius="12" Background="{StaticResource SoftNeutralBrush}">

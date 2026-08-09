@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:components="clr-namespace:HandballIntegration.Components"
-             IsTabStop="False">
+             IsTabStop="False"
+             Visibility="{Binding IsLoadingOrBlocked, Converter={StaticResource BooleanToVisibilityConverter}}">
     <Border Padding="12,9" CornerRadius="12" Background="{StaticResource SoftNeutralBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
         <Grid>

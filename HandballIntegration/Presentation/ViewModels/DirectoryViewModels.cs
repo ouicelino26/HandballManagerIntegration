@@ -20,7 +20,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
     private AdminTeamListItemDto? _filterTeam;
     private bool? _activeOnly = true;
     private int _page = 1;
-    private int _pageSize = 25;
+    private int _pageSize = 50;
     private bool _isCreating;
     private string _firstName = string.Empty;
     private string _lastName = string.Empty;
@@ -57,7 +57,7 @@ public sealed class PlayersAdminViewModel : AdminPageViewModelBase
     public ObservableCollection<AdminTeamListItemDto> Teams { get; } = [];
     public ObservableCollection<LookupItemDto> Positions { get; } = [];
     public ObservableCollection<LookupItemDto> Nationalities { get; } = [];
-    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100];
+    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100, 200];
     public IAsyncRelayCommand ApplyFiltersCommand { get; }
     public IAsyncRelayCommand ClearFiltersCommand { get; }
     public IAsyncRelayCommand NextPageCommand { get; }
@@ -405,7 +405,7 @@ public sealed class AuditViewModel : AdminPageViewModelBase
 {
     private readonly IAdminAuditApiClient _apiClient;
     private int _page = 1;
-    private int _pageSize = 25;
+    private int _pageSize = 50;
     private string? _entityType;
     private string? _entityReference;
     private AdminAuditEntry? _selectedEntry;
@@ -421,7 +421,7 @@ public sealed class AuditViewModel : AdminPageViewModelBase
     }
 
     public ObservableCollection<AdminAuditEntry> Entries { get; } = [];
-    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100];
+    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100, 200];
     public IAsyncRelayCommand ApplyFiltersCommand { get; }
     public IAsyncRelayCommand NextPageCommand { get; }
     public IAsyncRelayCommand PreviousPageCommand { get; }
@@ -584,14 +584,30 @@ public sealed class UsersAdminViewModel : AdminPageViewModelBase
             }
             else if (SelectedUser is not null)
             {
-                await _apiClient.UpdateUserAsync(
-                    SelectedUser.Id,
-                    new AdminUserUpdate(
-                        Email.Trim(),
-                        string.IsNullOrEmpty(Password) ? null : Password,
-                        Role,
-                        IsActive),
-                    cancellationToken);
+                var id = SelectedUser.Id;
+                // Email update (route PUT /{id})
+                if (!string.Equals(Email.Trim(), SelectedUser.Email ?? string.Empty, StringComparison.Ordinal))
+                {
+                    await _apiClient.UpdateUserAsync(
+                        id,
+                        new AdminUserUpdate(Email.Trim(), null, null, null),
+                        cancellationToken);
+                }
+                // Role update (route PUT /{id}/roles)
+                if (!string.Equals(Role, SelectedUser.Role, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _apiClient.UpdateRoleAsync(id, Role, "Changement de role via l'outil admin", cancellationToken);
+                }
+                // Status update (route PUT /{id}/status)
+                var wasActive = string.Equals(SelectedUser.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+                if (IsActive != wasActive)
+                {
+                    await _apiClient.UpdateStatusAsync(
+                        id,
+                        IsActive,
+                        IsActive ? "Activation du compte via l'outil admin" : "Desactivation du compte via l'outil admin",
+                        cancellationToken);
+                }
             }
 
             Cancel();
@@ -639,5 +655,67 @@ public sealed class SettingsViewModel(
         ApiVersion = version.ApiVersion;
         DatabaseVersion = version.DatabaseVersion;
         return AdminPageState.Loaded("Les diagnostics affiches ne contiennent ni token, ni secret, ni chaine de connexion.");
+    }
+}
+
+public sealed class ImportHistoryViewModel : AdminPageViewModelBase
+{
+    private readonly IAdminImportHistoryApiClient _apiClient;
+    private int _page = 1;
+    private int _pageSize = 50;
+    private string? _statusFilter;
+    private AdminImportExecutionListItemDto? _selectedImport;
+
+    public ImportHistoryViewModel(IAdminImportHistoryApiClient apiClient) : base(
+        "Historique des imports",
+        "Toutes les executions auditees, avec leur statut et leur rapport.")
+    {
+        _apiClient = apiClient;
+        NextPageCommand = new AsyncRelayCommand(NextPageAsync, () => HasNextPage && !IsLoading);
+        PreviousPageCommand = new AsyncRelayCommand(PreviousPageAsync, () => _page > 1 && !IsLoading);
+        ApplyFiltersCommand = new AsyncRelayCommand(() => { _page = 1; return RefreshAsync(); });
+    }
+
+    public ObservableCollection<AdminImportExecutionListItemDto> Imports { get; } = [];
+    public IReadOnlyList<string?> StatusOptions { get; } = [null, "COMPLETED", "FAILED", "RUNNING", "CANCELLED"];
+    public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100, 200];
+    public IAsyncRelayCommand NextPageCommand { get; }
+    public IAsyncRelayCommand PreviousPageCommand { get; }
+    public IAsyncRelayCommand ApplyFiltersCommand { get; }
+
+    public bool HasNextPage { get; private set; }
+    public int Page { get => _page; private set => SetProperty(ref _page, value); }
+    public int PageSize { get => _pageSize; set => SetProperty(ref _pageSize, value); }
+    public string? StatusFilter { get => _statusFilter; set => SetProperty(ref _statusFilter, value); }
+    public AdminImportExecutionListItemDto? SelectedImport
+    {
+        get => _selectedImport;
+        set => SetProperty(ref _selectedImport, value);
+    }
+
+    protected override async Task<AdminPageState> LoadAsync(CancellationToken cancellationToken)
+    {
+        var result = await _apiClient.GetImportsAsync(_page, _pageSize, _statusFilter, cancellationToken: cancellationToken);
+        Imports.Clear();
+        foreach (var item in result.Items)
+            Imports.Add(item);
+        HasNextPage = result.HasNextPage;
+        NextPageCommand.NotifyCanExecuteChanged();
+        PreviousPageCommand.NotifyCanExecuteChanged();
+        return Imports.Count == 0
+            ? AdminPageState.Empty("Aucune execution ne correspond aux filtres.")
+            : AdminPageState.Loaded($"{result.Total} execution(s) au total.");
+    }
+
+    private async Task NextPageAsync()
+    {
+        _page++;
+        await RefreshAsync();
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        _page = Math.Max(1, _page - 1);
+        await RefreshAsync();
     }
 }

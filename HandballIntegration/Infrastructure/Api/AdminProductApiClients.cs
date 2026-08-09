@@ -321,8 +321,17 @@ public sealed class AdminReferenceDataApiClient(IAdminApiTransport transport) : 
         "POST/PUT /api/v2/admin/reference-data/{catalog}",
         "Les catalogues sont consultables, mais les modifications ne disposent pas encore d'un contrat admin.");
 
-    public async Task<IReadOnlyList<CompetitionDto>> GetCompetitionsAsync(CancellationToken cancellationToken = default) =>
-        (await transport.GetAsync<List<CompetitionDto>>("api/v2/admin/reference-data/competitions", cancellationToken)).Value;
+    public async Task<IReadOnlyList<CompetitionDto>> GetCompetitionsAsync(CancellationToken cancellationToken = default)
+    {
+        var all = await FetchAllPagesAsync("competitions", cancellationToken);
+        return all.Select(r => new CompetitionDto
+        {
+            CompetitionId = r.Id,
+            CompetitionCode = r.Code,
+            CompetitionName = r.Name,
+            MatchCount = r.ItemCount
+        }).ToList();
+    }
 
     public Task<IReadOnlyList<LookupItemDto>> GetEventsAsync(CancellationToken cancellationToken = default) =>
         GetLookupAsync("events", cancellationToken);
@@ -341,10 +350,59 @@ public sealed class AdminReferenceDataApiClient(IAdminApiTransport transport) : 
 
     private async Task<IReadOnlyList<LookupItemDto>> GetLookupAsync(
         string catalog,
-        CancellationToken cancellationToken) =>
-        (await transport.GetAsync<List<LookupItemDto>>(
-            $"api/v2/admin/reference-data/{catalog}",
-            cancellationToken)).Value;
+        CancellationToken cancellationToken)
+    {
+        var all = await FetchAllPagesAsync(catalog, cancellationToken);
+        return all.Select(r => new LookupItemDto
+        {
+            Id = r.Id,
+            Code = r.Code,
+            Name = r.Name
+        }).ToList();
+    }
+
+    private async Task<List<AdminReferenceItemDto>> FetchAllPagesAsync(
+        string catalog,
+        CancellationToken cancellationToken)
+    {
+        const int batchSize = 200;
+        var result = new List<AdminReferenceItemDto>();
+        var page = 1;
+        while (true)
+        {
+            var url = $"api/v2/admin/reference-data/{catalog}?page={page}&pageSize={batchSize}";
+            var batch = (await transport.GetAsync<V2PageContract<AdminReferenceItemDto>>(url, cancellationToken)).Value;
+            result.AddRange(batch.Items);
+            if (result.Count >= batch.Total || batch.Items.Count < batchSize)
+                break;
+            page++;
+        }
+        return result;
+    }
+}
+
+public sealed class AdminImportHistoryApiClient(IAdminApiTransport transport) : IAdminImportHistoryApiClient
+{
+    public async Task<AdminPageResult<AdminImportExecutionListItemDto>> GetImportsAsync(
+        int page = 1,
+        int pageSize = 50,
+        string? status = null,
+        DateTime? from = null,
+        DateTime? to = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryStringBuilder("api/v2/admin/imports")
+            .Add("page", Math.Max(1, page))
+            .Add("pageSize", Math.Clamp(pageSize, 1, 200))
+            .Add("status", status)
+            .Add("from", from?.ToString("o", System.Globalization.CultureInfo.InvariantCulture))
+            .Add("to", to?.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+        var result = (await transport.GetAsync<V2PageContract<AdminImportExecutionListItemDto>>(
+            query.ToString(), cancellationToken)).Value;
+        return new AdminPageResult<AdminImportExecutionListItemDto>(
+            result.Items, result.Page, result.PageSize, result.Total,
+            result.Page * result.PageSize < result.Total);
+    }
 }
 
 public sealed class AdminDataQualityApiClient : IAdminDataQualityApiClient
@@ -436,7 +494,29 @@ public sealed class AdminUsersApiClient(IAdminApiTransport transport) : IAdminUs
         (await transport.SendJsonAsync<AdminUserDto>(
             HttpMethod.Put,
             $"api/v2/admin/users/{userId}",
-            request,
+            new { Email = request.Email, Reason = "Mise a jour du compte" },
+            cancellationToken: cancellationToken)).Value;
+
+    public async Task<AdminUserDto> UpdateRoleAsync(
+        int userId,
+        string role,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        (await transport.SendJsonAsync<AdminUserDto>(
+            HttpMethod.Put,
+            $"api/v2/admin/users/{userId}/roles",
+            new AdminUserRolesUpdate(role, reason),
+            cancellationToken: cancellationToken)).Value;
+
+    public async Task<AdminUserDto> UpdateStatusAsync(
+        int userId,
+        bool isActive,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        (await transport.SendJsonAsync<AdminUserDto>(
+            HttpMethod.Put,
+            $"api/v2/admin/users/{userId}/status",
+            new AdminUserStatusUpdate(isActive, reason),
             cancellationToken: cancellationToken)).Value;
 }
 

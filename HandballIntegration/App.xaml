@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.modernwpf.com/2019"
              xmlns:vm="clr-namespace:HandballIntegration.Presentation.ViewModels"
-             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views"
+             xmlns:converters="clr-namespace:HandballIntegration.Converters">
 
     <Application.Resources>
         <ResourceDictionary>
@@ -21,13 +22,18 @@
                 <ResourceDictionary Source="/HandballIntegration;component/Themes/Navigation.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+            <converters:AdminPageStateKindToBadgeBrushConverter x:Key="StateBadgeBrushConverter" />
+            <converters:AdminPageStateKindToForegroundConverter x:Key="StateBadgeForegroundConverter" />
                 <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><views:DashboardView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:ImportsViewModel}"><views:ImportsView/></DataTemplate>
+                <DataTemplate DataType="{x:Type vm:LegacyIntegrationViewModel}"><views:LegacyIntegrationView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:MatchesViewModel}"><views:MatchesView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:PlayersAdminViewModel}"><views:PlayersAdminView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:TeamsAdminViewModel}"><views:TeamsAdminView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:ReferenceDataViewModel}"><views:ReferenceDataView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:AuditViewModel}"><views:AuditView/></DataTemplate>
+                <DataTemplate DataType="{x:Type vm:ImportHistoryViewModel}"><views:ImportHistoryView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:UsersAdminViewModel}"><views:UsersAdminView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:BlockedModuleViewModel}"><views:BlockedModuleView/></DataTemplate>
