@@ -99,6 +99,7 @@ namespace HandballIntegration.ViewModels
             }
             catch (Exception ex)
             {
+                LogSimple($"Time integration failed for '{file.FullPath}': {ex}");
                 file.Status = IntegrationStatus.Error;
                 file.StatusMessage = "Erreur : " + ex.Message;
             }
@@ -135,21 +136,21 @@ namespace HandballIntegration.ViewModels
                 throw new Exception("Aucun match existant ne correspond a cette saison, cette journee et ces equipes.");
             }
 
-            var checkResp = await _http.GetAsync(
+            using var checkResp = await _http.GetAsync(
                 $"{_settings.ApiBaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}");
-            if (checkResp.IsSuccessStatusCode)
+            if (!checkResp.IsSuccessStatusCode)
             {
-                var existingTimeRows = await checkResp.Content.ReadFromJsonAsync<List<TimePlayers>>()
-                    ?? new List<TimePlayers>();
-                if (existingTimeRows.Any(item => item.MatchId == existingMatch.MatchId))
-                {
-                    throw new Exception($"Des temps de jeu sont deja integres pour le match #{existingMatch.MatchId}.");
-                }
+                var body = await checkResp.Content.ReadAsStringAsync();
+                var message = $"Verification des temps existants impossible : {(int)checkResp.StatusCode} {DescribeApiError(checkResp, body)}";
+                LogSimple(message);
+                throw new HttpRequestException(message);
             }
-            else
+
+            var existingTimeRows = await checkResp.Content.ReadFromJsonAsync<List<TimePlayers>>()
+                ?? new List<TimePlayers>();
+            if (existingTimeRows.Any(item => item.MatchId == existingMatch.MatchId))
             {
-                var errBody = await checkResp.Content.ReadAsStringAsync();
-                LogSimple($"GET TimePlayers?matchId={existingMatch.MatchId} => {(int)checkResp.StatusCode}: {errBody} — verification ignoree, import continue");
+                throw new Exception($"Des temps de jeu sont deja integres pour le match #{existingMatch.MatchId}.");
             }
 
             file.StatusMessage = "Lecture de Feuil1...";
@@ -200,8 +201,8 @@ namespace HandballIntegration.ViewModels
                 var payload = new TimePlayers
                 {
                     MatchId = existingMatch.MatchId,
-                    TeamLabel = effectiveTeamLabel,
-                    PlayerName = player.FullName,
+                    TeamLabel = LimitForApi(effectiveTeamLabel, 32, "Equipe"),
+                    PlayerName = LimitForApi(player.FullName, 200, "Joueuse inconnue"),
                     PlayingTime = row.MatchTime,
                     PlayerId = player.Id,
                     SourceFile = Path.GetFileName(file.FullPath),
@@ -214,13 +215,13 @@ namespace HandballIntegration.ViewModels
                     IsDeleted = false
                 };
 
-                var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload);
+                using var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload);
                 if (!response.IsSuccessStatusCode)
                 {
-                    skippedCount++;
                     var body = await response.Content.ReadAsStringAsync();
-                    LogSimple($"Time import failed row {row.RowNumber} / player '{player.FullName}': {(int)response.StatusCode} {body}");
-                    continue;
+                    var message = $"Echec API ligne {row.RowNumber} pour '{player.FullName}' : {(int)response.StatusCode} {DescribeApiError(response, body)}";
+                    LogSimple(message);
+                    throw new HttpRequestException(message);
                 }
 
                 importedCount++;
@@ -818,8 +819,33 @@ namespace HandballIntegration.ViewModels
 
         private void LogSimple(string message)
         {
-            File.AppendAllText("integration_time_errors.log", $"{DateTime.Now} - {message}{Environment.NewLine}");
+            try
+            {
+                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                var logPath = Path.Combine(desktop, "integration_time_errors.log");
+                File.AppendAllText(logPath, $"{DateTime.Now:O} - {message}{Environment.NewLine}");
+            }
+            catch
+            {
+                // A logging failure must never replace the actual integration error.
+            }
         }
+
+        internal static string LimitForApi(string? value, int maxLength, string fallback)
+        {
+            if (maxLength <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxLength));
+            }
+
+            var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+            return normalized.Length <= maxLength ? normalized : normalized[..maxLength];
+        }
+
+        private static string DescribeApiError(HttpResponseMessage response, string body)
+            => string.IsNullOrWhiteSpace(body)
+                ? response.ReasonPhrase ?? "Erreur API sans detail"
+                : body.Trim();
 
         private sealed class ResolvedMatchTeam
         {

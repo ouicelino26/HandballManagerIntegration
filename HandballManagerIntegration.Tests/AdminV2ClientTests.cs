@@ -248,7 +248,7 @@ public sealed class AdminV2ClientTests
     public void AdminDashboardDto_HasCounters()
     {
         var dto = new AdminDashboardDto(
-            RecentImports: 3,
+            RecentImports: Array.Empty<AdminImportExecutionSummaryDto>(),
             FailedImports: 0,
             MatchesTotal: 150,
             EventsTotal: 7200,
@@ -270,6 +270,7 @@ public sealed class AdminV2ClientTests
 
         var dto = new AdminImportExecutionListItemDto(
             Id: Guid.NewGuid(),
+            IdempotencyKey: "match-2026-08-01",
             Status: "COMPLETED",
             StartedAtUtc: started,
             CompletedAtUtc: completed,
