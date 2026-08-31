@@ -133,6 +133,14 @@ namespace HandballIntegration.Services
             _sessionService.Clear();
         }
 
+        public bool IsTokenExpiringSoon()
+        {
+            var expiresAtUtc = _sessionService.Current?.ExpiresAtUtc;
+            if (expiresAtUtc == null)
+                return true;
+            return expiresAtUtc.Value - DateTime.UtcNow < TimeSpan.FromMinutes(2);
+        }
+
         private static string NormalizeAdminRole(string? role)
         {
             if (string.Equals(role, "Admin", StringComparison.Ordinal)) return "SUPER_ADMIN";

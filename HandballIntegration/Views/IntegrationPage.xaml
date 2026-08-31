@@ -90,6 +90,9 @@
                                                FontWeight="SemiBold"
                                                Foreground="{StaticResource AccentAltDarkBrush}"/>
                                 </Border>
+                                <Button Content="Intégrer tout"
+                                        Margin="0,8,0,0"
+                                        Click="IntegrateTous_Click"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -286,6 +289,9 @@
                                                FontWeight="SemiBold"
                                                Foreground="{StaticResource AccentAltDarkBrush}"/>
                                 </Border>
+                                <Button Content="Intégrer tout"
+                                        Margin="0,8,0,0"
+                                        Click="IntegrateTousTime_Click"/>
                             </StackPanel>
                         </Grid>
                     </Border>

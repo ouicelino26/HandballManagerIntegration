@@ -16,17 +16,22 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HandballIntegration.ViewModels
 {
     public partial class TimeIntegrationViewModel : ObservableObject
     {
+        private static readonly SemaphoreSlim _logSemaphore = new(1, 1);
+
         private readonly HttpClient _http;
         private readonly ApiService _apiService;
         private readonly ApiSettings _settings;
+        private readonly IApiAuthService _auth;
         private readonly TimePlayersSheetImportService _sheetImportService = new();
         private readonly Dictionary<string, string> _playerNameMap = new();
+        private CancellationTokenSource? _importCts;
 
         public List<string> JoursDisponibles { get; } =
             Enumerable.Range(1, 28)
@@ -34,7 +39,7 @@ namespace HandballIntegration.ViewModels
                 .ToList();
 
         public List<string> SaisonsDisponibles { get; } =
-            Enumerable.Range(2010, 21)
+            Enumerable.Range(2004, 27)
                 .Select(BuildSeasonLabel)
                 .ToList();
 
@@ -44,13 +49,18 @@ namespace HandballIntegration.ViewModels
         public ObservableCollection<TimePlayersFileToIntegrate> Files { get; } = new();
 
         public IRelayCommand<TimePlayersFileToIntegrate> IntegrateCommand { get; }
+        public IRelayCommand IntegrateTousCommand { get; }
+        public IRelayCommand CancelCommand { get; }
 
         public TimeIntegrationViewModel()
         {
             _apiService = App.Services.GetRequiredService<ApiService>();
             _http = App.Services.GetRequiredService<HttpClient>();
+            _auth = App.Services.GetRequiredService<IApiAuthService>();
             _settings = App.Services.GetRequiredService<IOptions<ApiSettings>>().Value;
             IntegrateCommand = new AsyncRelayCommand<TimePlayersFileToIntegrate>(IntegrateFileAsync);
+            IntegrateTousCommand = new AsyncRelayCommand(IntegrateTousAsync);
+            CancelCommand = new RelayCommand(() => _importCts?.Cancel());
         }
 
         public void LoadFiles(string folderPath)
@@ -61,7 +71,8 @@ namespace HandballIntegration.ViewModels
             foreach (var filePath in Directory.GetFiles(folderPath, "*.xlsx", SearchOption.AllDirectories))
             {
                 var fileName = Path.GetFileName(filePath);
-                if (!fileName.StartsWith("Table historique des actions du match", StringComparison.OrdinalIgnoreCase))
+                if (!fileName.Contains("historique", StringComparison.OrdinalIgnoreCase)
+                    || !fileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -74,7 +85,7 @@ namespace HandballIntegration.ViewModels
                     MatchInfo = new MatchDto
                     {
                         Day = ExtractMatchDay(filePath) ?? JoursDisponibles.First(),
-                        Season = GetCurrentSeasonLabel()
+                        Season = ExtractSeasonFromPath(filePath) ?? GetCurrentSeasonLabel()
                     }
                 });
             }
@@ -87,15 +98,25 @@ namespace HandballIntegration.ViewModels
                 return;
             }
 
+            _importCts = new CancellationTokenSource();
+            var ct = _importCts.Token;
+
+            _auth.ApplyAuthorizationHeader(_http);
             file.IsBusy = true;
             file.Status = IntegrationStatus.Converting;
             file.StatusMessage = "Lecture du fichier...";
 
             try
             {
-                var summary = await IntegrateInternalAsync(file);
+                var summary = await IntegrateInternalAsync(file, ct);
                 file.Status = IntegrationStatus.Success;
                 file.StatusMessage = summary;
+            }
+            catch (OperationCanceledException)
+            {
+                file.Status = IntegrationStatus.Error;
+                file.StatusMessage = "Import annule par l'utilisateur.";
+                await LogAsync("Import annule par l'utilisateur.");
             }
             catch (Exception ex)
             {
@@ -108,7 +129,7 @@ namespace HandballIntegration.ViewModels
             }
         }
 
-        private async Task<string> IntegrateInternalAsync(TimePlayersFileToIntegrate file)
+        private async Task<string> IntegrateInternalAsync(TimePlayersFileToIntegrate file, CancellationToken ct = default)
         {
             if (!await _apiService.PrepareAuthorizedClientAsync(_http))
             {
@@ -129,17 +150,17 @@ namespace HandballIntegration.ViewModels
 
             file.TeamsLabel = string.Join(" / ", teams.Select(team => team.DisplayLabel));
 
-            var existingMatch = await FindExistingMatchAsync(file.MatchInfo.Season, file.MatchInfo.Day, teams);
+            var existingMatch = await FindExistingMatchAsync(file.MatchInfo.Season, file.MatchInfo.Day, teams, ct);
             if (existingMatch == null)
             {
                 throw new Exception("Aucun match existant ne correspond a cette saison, cette journee et ces equipes.");
             }
 
             var checkResp = await _http.GetAsync(
-                $"{_settings.ApiBaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}");
+                $"{_settings.ApiBaseUrl}api/TimePlayers?matchId={existingMatch.MatchId}", ct);
             if (checkResp.IsSuccessStatusCode)
             {
-                var existingTimeRows = await checkResp.Content.ReadFromJsonAsync<List<TimePlayers>>()
+                var existingTimeRows = await checkResp.Content.ReadFromJsonAsync<List<TimePlayers>>(cancellationToken: ct)
                     ?? new List<TimePlayers>();
                 if (existingTimeRows.Any(item => item.MatchId == existingMatch.MatchId))
                 {
@@ -148,8 +169,8 @@ namespace HandballIntegration.ViewModels
             }
             else
             {
-                var errBody = await checkResp.Content.ReadAsStringAsync();
-                LogSimple($"GET TimePlayers?matchId={existingMatch.MatchId} => {(int)checkResp.StatusCode}: {errBody} — verification ignoree, import continue");
+                var errBody = await checkResp.Content.ReadAsStringAsync(ct);
+                await LogAsync($"GET TimePlayers?matchId={existingMatch.MatchId} => {(int)checkResp.StatusCode}: {errBody} — verification ignoree, import continue");
             }
 
             file.StatusMessage = "Lecture de Feuil1...";
@@ -187,7 +208,7 @@ namespace HandballIntegration.ViewModels
                 if (player == null)
                 {
                     skippedCount++;
-                    LogSimple($"Time import skipped row {row.RowNumber}: player '{row.PlayerName}' introuvable.");
+                    await LogAsync($"Time import skipped row {row.RowNumber}: player '{row.PlayerName}' introuvable.");
                     continue;
                 }
 
@@ -214,12 +235,12 @@ namespace HandballIntegration.ViewModels
                     IsDeleted = false
                 };
 
-                var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload);
+                var response = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/TimePlayers", payload, ct);
                 if (!response.IsSuccessStatusCode)
                 {
                     skippedCount++;
-                    var body = await response.Content.ReadAsStringAsync();
-                    LogSimple($"Time import failed row {row.RowNumber} / player '{player.FullName}': {(int)response.StatusCode} {body}");
+                    var body = await response.Content.ReadAsStringAsync(ct);
+                    await LogAsync($"Time import failed row {row.RowNumber} / player '{player.FullName}': {(int)response.StatusCode} {body}");
                     continue;
                 }
 
@@ -274,12 +295,12 @@ namespace HandballIntegration.ViewModels
             return teams.Take(2).ToList();
         }
 
-        private async Task<MatchListItemDto?> FindExistingMatchAsync(string? season, string? day, IReadOnlyList<ResolvedMatchTeam> teams)
+        private async Task<MatchListItemDto?> FindExistingMatchAsync(string? season, string? day, IReadOnlyList<ResolvedMatchTeam> teams, CancellationToken ct = default)
         {
             var normalizedSeason = string.IsNullOrWhiteSpace(season) ? null : season.Trim();
             var normalizedDay = string.IsNullOrWhiteSpace(day) ? null : day.Trim().ToUpperInvariant();
 
-            var requestUrl = $"{_settings.ApiBaseUrl}api/Matches?competitionId=1&pageSize=500";
+            var requestUrl = $"{_settings.ApiBaseUrl}api/Matches?competitionId={_settings.DefaultCompetitionId}&pageSize=500";
             if (!string.IsNullOrWhiteSpace(normalizedSeason))
             {
                 requestUrl += $"&season={Uri.EscapeDataString(normalizedSeason)}";
@@ -290,7 +311,7 @@ namespace HandballIntegration.ViewModels
                 requestUrl += $"&day={Uri.EscapeDataString(normalizedDay)}";
             }
 
-            var matches = await _http.GetFromJsonAsync<List<MatchListItemDto>>(requestUrl)
+            var matches = await _http.GetFromJsonAsync<List<MatchListItemDto>>(requestUrl, cancellationToken: ct)
                 ?? new List<MatchListItemDto>();
 
             var teamIds = teams.Select(team => team.Team.TeamId).OrderBy(id => id).ToArray();
@@ -793,7 +814,7 @@ namespace HandballIntegration.ViewModels
         {
             var match = System.Text.RegularExpressions.Regex.Match(
                 path ?? string.Empty,
-                @"(?<!\w)J\d{1,2}(?!\w)",
+                @"(?<!\w)J0*(\d{1,2})(?!\w)",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             if (!match.Success)
@@ -801,8 +822,31 @@ namespace HandballIntegration.ViewModels
                 return null;
             }
 
-            var day = match.Value.ToUpperInvariant();
-            return JoursDisponibles.Contains(day) ? day : null;
+            var normalized = "J" + match.Groups[1].Value.TrimStart('0').PadLeft(1, '0');
+            return JoursDisponibles.Contains(normalized.ToUpperInvariant()) ? normalized.ToUpperInvariant() : null;
+        }
+
+        private string? ExtractSeasonFromPath(string path)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(
+                path ?? string.Empty,
+                @"\d{4}[-_]\d{4}");
+            if (!match.Success)
+                return null;
+            var normalized = match.Value.Replace('_', '-');
+            return SaisonsDisponibles.Contains(normalized) ? normalized : null;
+        }
+
+        public async Task IntegrateTousAsync()
+        {
+            var toProcess = Files
+                .Where(f => f.Status != IntegrationStatus.Success && !f.IsBusy)
+                .ToList();
+
+            foreach (var file in toProcess)
+            {
+                await IntegrateFileAsync(file);
+            }
         }
 
         private static string BuildSeasonLabel(int startYear)
@@ -816,9 +860,20 @@ namespace HandballIntegration.ViewModels
             return BuildSeasonLabel(startYear);
         }
 
-        private void LogSimple(string message)
+        private async Task LogAsync(string message)
+            => await LogToFileAsync("integration_time_errors.log", $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
+
+        private static async Task LogToFileAsync(string path, string content)
         {
-            File.AppendAllText("integration_time_errors.log", $"{DateTime.Now} - {message}{Environment.NewLine}");
+            await _logSemaphore.WaitAsync();
+            try
+            {
+                await File.AppendAllTextAsync(path, content);
+            }
+            finally
+            {
+                _logSemaphore.Release();
+            }
         }
 
         private sealed class ResolvedMatchTeam

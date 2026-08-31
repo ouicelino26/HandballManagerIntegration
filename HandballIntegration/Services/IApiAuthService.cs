@@ -16,6 +16,7 @@ namespace HandballIntegration.Services
         string? Username { get; }
         string? Role { get; }
         bool IsAdmin { get; }
+        bool IsTokenExpiringSoon();
     }
 
     public class ApiLoginResult

@@ -62,5 +62,15 @@ namespace HandballIntegration.Views
                 await TimeViewModel.IntegrateFileAsync(file);
             }
         }
+
+        private async void IntegrateTous_Click(object sender, RoutedEventArgs e)
+        {
+            await ClassicViewModel.IntegrateTousAsync();
+        }
+
+        private async void IntegrateTousTime_Click(object sender, RoutedEventArgs e)
+        {
+            await TimeViewModel.IntegrateTousAsync();
+        }
     }
 }

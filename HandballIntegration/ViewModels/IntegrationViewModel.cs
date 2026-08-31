@@ -18,22 +18,28 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
-using Windows.Web.Http;
 
 public partial class IntegrationViewModel : ObservableObject
 {
+    private static readonly SemaphoreSlim _logSemaphore = new(1, 1);
+
     private readonly XlsxToCsvConverter _converter = new();
     private readonly MatchFileImportService _importService = new();
     private readonly System.Net.Http.HttpClient _http;
     private readonly ApiService _apiService;
     private readonly PlayersApiService _playersApiService;
     private readonly ApiSettings _settings;
+    private readonly IApiAuthService _auth;
+    private CancellationTokenSource? _importCts;
     private static string Key(string s)
     => NormalizeImportedPlayerName(s).ToLowerInvariant();
     Dictionary<string, string> _playerNameMap = new();
+    // Cache session : nom normalisé → joueur résolu (évite de re-sélectionner la même joueuse)
+    private readonly Dictionary<string, PlayerListItemDto> _playerSessionCache = new();
 
     public List<string> JoursDisponibles { get; } =
     Enumerable.Range(1, 28)
@@ -41,7 +47,7 @@ public partial class IntegrationViewModel : ObservableObject
               .ToList();
 
     public List<string> SaisonsDisponibles { get; } =
-        Enumerable.Range(2010, 21)
+        Enumerable.Range(2004, 27)
                   .Select(BuildSeasonLabel)
                   .ToList();
 
@@ -51,21 +57,15 @@ public partial class IntegrationViewModel : ObservableObject
         _apiService = App.Services.GetRequiredService<ApiService>();
         _playersApiService = App.Services.GetRequiredService<PlayersApiService>();
         _http = App.Services.GetRequiredService<System.Net.Http.HttpClient>();
+        _auth = App.Services.GetRequiredService<IApiAuthService>();
 
         var options = App.Services.GetRequiredService<
             Microsoft.Extensions.Options.IOptions<ApiSettings>>();
 
         _settings = options.Value;
         IntegrateCommand = new AsyncRelayCommand<MatchToIntegrate>(IntegrateFileAsync);
-        if (_settings == null)
-        {
-            Console.WriteLine("vide");
-
-        }
-        else if (string.IsNullOrWhiteSpace(_settings.ApiBaseUrl))
-        {
-            Console.WriteLine("vide");
-        }
+        IntegrateTousCommand = new AsyncRelayCommand(IntegrateTousAsync);
+        CancelCommand = new RelayCommand(() => _importCts?.Cancel());
     }
 
 
@@ -77,8 +77,10 @@ public partial class IntegrationViewModel : ObservableObject
         = new ObservableCollection<MatchToIntegrate>();
 
     public IRelayCommand<MatchToIntegrate> IntegrateCommand { get; }
+    public IRelayCommand IntegrateTousCommand { get; }
+    public IRelayCommand CancelCommand { get; }
 
-  
+
 
     public void LoadFiles(string folderPath)
     {
@@ -93,8 +95,8 @@ public partial class IntegrationViewModel : ObservableObject
             {
                 string fileName = Path.GetFileName(file);
 
-                if (fileName.StartsWith("Table historique des actions du match",
-                                        StringComparison.OrdinalIgnoreCase))
+                if (fileName.Contains("historique", StringComparison.OrdinalIgnoreCase)
+                    && fileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
                 {
                     var detectedDay = ExtractMatchDay(file);
 
@@ -106,15 +108,15 @@ public partial class IntegrationViewModel : ObservableObject
                         {
                             Date = DateTime.Today,
                             Day = detectedDay ?? JoursDisponibles.First(),
-                            Season = GetCurrentSeasonLabel()
+                            Season = ExtractSeasonFromPath(file) ?? GetCurrentSeasonLabel()
                         }
                     });
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-
+            _ = LogAsync($"[ERROR] Impossible de charger les fichiers : {ex.Message}");
         }
     }
 
@@ -124,19 +126,26 @@ public partial class IntegrationViewModel : ObservableObject
     // -------------------------------------------------------
     public async Task IntegrateFileAsync(MatchToIntegrate file)
     {
+        _importCts = new CancellationTokenSource();
+        var ct = _importCts.Token;
+
+        _auth.ApplyAuthorizationHeader(_http);
         file.IsBusy = true;
         file.Status = IntegrationStatus.Converting;
         file.StatusMessage = "Conversion XLSX...";
 
         try
         {
-            await Task.Run(async () =>
-            {
-                await IntegrateInternalAsync(file);
-            });
+            await IntegrateInternalAsync(file, ct);
 
             file.Status = IntegrationStatus.Success;
             file.StatusMessage = "Fichier integre ✔";
+        }
+        catch (OperationCanceledException)
+        {
+            file.Status = IntegrationStatus.Error;
+            file.StatusMessage = "Import annule par l'utilisateur.";
+            await LogAsync("Import annule par l'utilisateur.");
         }
         catch (PartialIntegrationException pex)
         {
@@ -154,7 +163,7 @@ public partial class IntegrationViewModel : ObservableObject
         }
     }
 
-    public async Task IntegrateInternalAsync(MatchToIntegrate file)
+    public async Task IntegrateInternalAsync(MatchToIntegrate file, CancellationToken ct = default)
     {
         if (!await _apiService.PrepareAuthorizedClientAsync(_http))
         {
@@ -218,13 +227,13 @@ public partial class IntegrationViewModel : ObservableObject
 
         file.StatusMessage = "Preparation des evenements...";
         var pendingPlayerTeamUpdates = new Dictionary<int, PendingPlayerTeamUpdate>();
-        var preparedEvents = await PrepareMatchEventsAsync(rows, teamsFromFile, pendingPlayerTeamUpdates);
+        var (preparedEvents, skippedUnknownEvents) = await PrepareMatchEventsAsync(rows, teamsFromFile, pendingPlayerTeamUpdates);
 
         if (preparedEvents.Count == 0)
             throw new Exception("Aucun evenement valide a integrer.");
 
         file.StatusMessage = "Controle des doublons...";
-        var existingMatch = await FindExistingIdenticalMatchAsync(newMatch, preparedEvents);
+        var existingMatch = await FindExistingIdenticalMatchAsync(newMatch, preparedEvents, ct);
         if (existingMatch != null)
         {
             throw new Exception(
@@ -237,8 +246,15 @@ public partial class IntegrationViewModel : ObservableObject
             await ApplyPendingPlayerTeamUpdatesAsync(pendingPlayerTeamUpdates.Values);
         }
 
+        // FIX DEGRADED #3 — abort before creating the match if token is about to expire
+        if (_auth.IsTokenExpiringSoon())
+        {
+            await LogAsync($"[ABORT] Token expire bientot — annulation de l'import du match '{file.FileName}'");
+            throw new Exception("Token JWT expire bientot — relancez l'import apres reconnexion.");
+        }
+
         file.StatusMessage = "Creation du match...";
-        var respMatch = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/Matches", newMatch);
+        var respMatch = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/Matches", newMatch, ct);
         respMatch.EnsureSuccessStatusCode();
 
         var createdMatch = await respMatch.Content.ReadFromJsonAsync<Match>()
@@ -247,24 +263,27 @@ public partial class IntegrationViewModel : ObservableObject
         file.StatusMessage = "Importation evenements...";
         int eventsOk = 0;
         int eventsFailed = 0;
+        bool gotUnauthorized = false;
         foreach (var preparedEvent in preparedEvents)
         {
             preparedEvent.MatchEvent.MatchId = createdMatch.Id;
 
-            var resp = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/MatchEvents", preparedEvent.MatchEvent);
+            var resp = await _http.PostAsJsonAsync($"{_settings.ApiBaseUrl}api/MatchEvents", preparedEvent.MatchEvent, ct);
 
             if (!resp.IsSuccessStatusCode)
             {
                 eventsFailed++;
-                var body = await resp.Content.ReadAsStringAsync();
+                if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    gotUnauthorized = true;
+
+                var body = await resp.Content.ReadAsStringAsync(ct);
                 var sentJson = System.Text.Json.JsonSerializer.Serialize(
                     preparedEvent.MatchEvent,
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
 
-                File.AppendAllText("integration_errors.log",
+                await LogAsync(
                     $"""
                     ==============================
-                    {DateTime.Now}
                     ROUTE : POST api/MatchEvents
                     STATUS : {(int)resp.StatusCode} {resp.ReasonPhrase}
                     MATCH : #{createdMatch.Id}
@@ -274,12 +293,18 @@ public partial class IntegrationViewModel : ObservableObject
                     ----- REPONSE API -----
                     {body}
                     ==============================
-
                     """);
                 continue;
             }
 
             eventsOk++;
+        }
+
+        // FIX DEGRADED #3 — detect token expiry mid-import
+        if (gotUnauthorized && eventsFailed == preparedEvents.Count && eventsOk == 0)
+        {
+            await LogAsync($"[ERROR] Token expire pendant l'import — match #{createdMatch.Id} cree sans evenements. Relancer apres reconnexion.");
+            throw new PartialIntegrationException($"Token expire — match #{createdMatch.Id} cree sans evenements. Relancer apres reconnexion.");
         }
 
         int skippedRows = rows.Count - preparedEvents.Count;
@@ -289,8 +314,10 @@ public partial class IntegrationViewModel : ObservableObject
             summary.Append($" — ATTENTION : {eventsFailed} evenement(s) rejetes par l'API (voir integration_errors.log)");
         if (skippedRows > 0)
             summary.Append($" — {skippedRows} ligne(s) ignoree(s) (joueurs/equipes inconnus, voir integration_skips.log)");
+        if (skippedUnknownEvents > 0)
+            summary.Append($" — ATTENTION : {skippedUnknownEvents} evenement(s) de type inconnu ignores (non integres)");
 
-        if (eventsFailed > 0 || skippedRows > 0)
+        if (eventsFailed > 0 || skippedRows > 0 || skippedUnknownEvents > 0)
             throw new PartialIntegrationException(summary.ToString());
     }
 
@@ -300,13 +327,14 @@ public partial class IntegrationViewModel : ObservableObject
     }
        
 
-    private async Task<List<PreparedMatchEvent>> PrepareMatchEventsAsync(
+    private async Task<(List<PreparedMatchEvent> Events, int SkippedUnknownEvents)> PrepareMatchEventsAsync(
         List<MatchFileDto> rows,
         List<TeamLight> teamsFromFile,
         Dictionary<int, PendingPlayerTeamUpdate> pendingPlayerTeamUpdates)
     {
         var preparedEvents = new List<PreparedMatchEvent>();
         int currentHalf = 1;
+        int skippedUnknownEvents = 0;
         TimeSpan? prevTime = null;
 
         for (int i = 0; i < rows.Count; i++)
@@ -324,7 +352,7 @@ public partial class IntegrationViewModel : ObservableObject
                 {
                     currentHalf++;
                     resetDetected = true;
-                    LogHalfReset(rowIndex, prevTimeForLog.Value, parsedTime.Value, dto);
+                    await LogHalfResetAsync(rowIndex, prevTimeForLog.Value, parsedTime.Value, dto);
                 }
 
                 miTemps = $"MT{currentHalf}";
@@ -346,7 +374,7 @@ public partial class IntegrationViewModel : ObservableObject
 
             if (int.TryParse(dto.Number, out var dtoNumber) && dtoNumber >= 100)
             {
-                LogSkip("Number>=100", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
+                await LogSkipAsync("Number>=100", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
                 continue;
             }
 
@@ -363,20 +391,21 @@ public partial class IntegrationViewModel : ObservableObject
 
             if (teamId == null)
             {
-                LogSkip("Team inconnue", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
+                await LogSkipAsync("Team inconnue", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
                 continue;
             }
 
             if (resolvedPlayer == null)
             {
-                LogSkip("Player inconnu", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
+                await LogSkipAsync("Player inconnu", rowIndex, dto, parsedTime, miTemps, prevTimeForLog, resetDetected, isBoundary);
                 continue;
             }
 
             if (eventId == null)
             {
-                LogSimple($"Event inconnu '{dto.EventId}' -> force a ID 37");
-                eventId = 37;
+                await LogAsync($"[SKIP] Evenement inconnu '{dto.EventId}' ignore — non integre (ligne {rowIndex})");
+                skippedUnknownEvents++;
+                continue;
             }
 
             RegisterPendingPlayerTeamUpdate(
@@ -412,7 +441,7 @@ public partial class IntegrationViewModel : ObservableObject
             });
         }
 
-        return preparedEvents;
+        return (preparedEvents, skippedUnknownEvents);
     }
 
     private async Task<PlayerListItemDto?> ResolvePlayerAsync(
@@ -424,6 +453,10 @@ public partial class IntegrationViewModel : ObservableObject
         string originalName = dto.PlayerId;
         var key = Key(originalName);
 
+        // Cache session : retourne directement sans appel API ni dialog
+        if (_playerSessionCache.TryGetValue(key, out var cachedPlayer))
+            return cachedPlayer;
+
         if (_playerNameMap.TryGetValue(key, out var mappedName))
         {
             dto.PlayerId = mappedName;
@@ -433,6 +466,7 @@ public partial class IntegrationViewModel : ObservableObject
         if (resolvedPlayer != null)
         {
             _playerNameMap[key] = resolvedPlayer.FullName;
+            _playerSessionCache[key] = resolvedPlayer;
             return resolvedPlayer;
         }
 
@@ -467,7 +501,7 @@ public partial class IntegrationViewModel : ObservableObject
 
             if (selected != null)
             {
-                LogSimple($"Player auto-selected '{originalName}' -> '{selected.FullName}'");
+                await LogAsync($"Player auto-selected '{originalName}' -> '{selected.FullName}'");
             }
             else
             {
@@ -478,6 +512,7 @@ public partial class IntegrationViewModel : ObservableObject
         if (selected != null)
         {
             _playerNameMap[key] = selected.FullName;
+            _playerSessionCache[key] = selected;
             return selected;
         }
 
@@ -500,12 +535,14 @@ public partial class IntegrationViewModel : ObservableObject
         }
 
         _playerNameMap[key] = createdPlayerDto.FullName;
+        _playerSessionCache[key] = createdPlayerDto;
         return createdPlayerDto;
     }
 
     private async Task<MatchListItemDto?> FindExistingIdenticalMatchAsync(
         Match expectedMatch,
-        IReadOnlyList<PreparedMatchEvent> preparedEvents)
+        IReadOnlyList<PreparedMatchEvent> preparedEvents,
+        CancellationToken ct = default)
     {
         if (expectedMatch.Date == null)
         {
@@ -514,7 +551,8 @@ public partial class IntegrationViewModel : ObservableObject
 
         string dateValue = expectedMatch.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var matches = await _http.GetFromJsonAsync<List<MatchListItemDto>>(
-            $"{_settings.ApiBaseUrl}api/Matches?competitionId={expectedMatch.CompetitionId}&from={dateValue}&to={dateValue}&pageSize=500")
+            $"{_settings.ApiBaseUrl}api/Matches?competitionId={expectedMatch.CompetitionId}&from={dateValue}&to={dateValue}&pageSize=500",
+            cancellationToken: ct)
             ?? new List<MatchListItemDto>();
 
         var candidates = matches.Where(match =>
@@ -583,21 +621,43 @@ public partial class IntegrationViewModel : ObservableObject
                     $"Impossible de mettre a jour l'equipe de {update.PlayerName} vers {update.TeamName}.");
             }
 
-            LogSimple($"Equipe synchronisee pour '{update.PlayerName}' -> '{update.TeamName}'");
+            await LogAsync($"Equipe synchronisee pour '{update.PlayerName}' -> '{update.TeamName}'");
         }
     }
+
+    // Alias des noms d'équipes qui ont changé au fil des saisons
+    private static readonly Dictionary<string, string> TeamNameAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["CELLES-SUR-BELLE"] = "CELLES-BELLE",
+        ["CELLES SUR BELLE"] = "CELLES-BELLE",
+        ["BOURG PEAGE"] = "BOURG-PEAGE",
+        ["PLAN DE CUQUES"] = "PLAN-DE-CUQUES",
+        ["ISSY PARIS"] = "ISSY",
+        ["NICE"] = "NICE OGC",
+        ["METZ HB"] = "METZ",
+        ["ST AMAND"] = "ST-AMAND",
+        ["TOULON ST-CYR"] = "TOULON",
+        ["LE HAVRE"] = "HAVRE",
+        ["CELLES"] = "CELLES-BELLE",
+        ["MIOS BEGLES"] = "MIOS",
+        ["MIOS-BEGLES"] = "MIOS",
+        ["BB MIOS BIGANOS"] = "MIOS",
+    };
 
     // ---------------- HELPERS -------------------
     private async Task<int?> ApiResolveTeamId(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
+        _auth.ApplyAuthorizationHeader(_http);
+        name = name.Trim();
+        if (TeamNameAliases.TryGetValue(name, out var alias)) name = alias;
 
         // 1. Correspondance exacte (case-insensitive)
         var resp = await _http.GetAsync($"{_settings.ApiBaseUrl}api/Teams/byname/{Uri.EscapeDataString(name.Trim())}");
         if (resp.IsSuccessStatusCode)
         {
-            var team = await resp.Content.ReadFromJsonAsync<Team>();
-            if (team?.Id > 0) return team.Id;
+            var team = await resp.Content.ReadFromJsonAsync<TeamDto>();
+            if (team?.TeamId > 0) return team.TeamId;
         }
 
         // 2. Fallback Contains via route admin (nom approximatif, accents, abreviations)
@@ -1165,15 +1225,38 @@ public partial class IntegrationViewModel : ObservableObject
     {
         var match = System.Text.RegularExpressions.Regex.Match(
             path ?? string.Empty,
-            @"(?<!\w)J\d{1,2}(?!\w)",
+            @"(?<!\w)J0*(\d{1,2})(?!\w)",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (!match.Success)
         {
             return null;
         }
 
-        var detectedDay = match.Value.ToUpperInvariant();
-        return JoursDisponibles.Contains(detectedDay) ? detectedDay : null;
+        var normalized = "J" + match.Groups[1].Value.TrimStart('0').PadLeft(1, '0');
+        return JoursDisponibles.Contains(normalized.ToUpperInvariant()) ? normalized.ToUpperInvariant() : null;
+    }
+
+    private string? ExtractSeasonFromPath(string path)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            path ?? string.Empty,
+            @"\d{4}[-_]\d{4}");
+        if (!match.Success)
+            return null;
+        var normalized = match.Value.Replace('_', '-');
+        return SaisonsDisponibles.Contains(normalized) ? normalized : null;
+    }
+
+    public async Task IntegrateTousAsync()
+    {
+        var toProcess = Files
+            .Where(f => f.Status != IntegrationStatus.Success && !f.IsBusy)
+            .ToList();
+
+        foreach (var file in toProcess)
+        {
+            await IntegrateFileAsync(file);
+        }
     }
 
     private static string? NormalizeMiTemps(string? s)
@@ -1195,11 +1278,11 @@ public partial class IntegrationViewModel : ObservableObject
         return minutes <= 1 || (minutes >= 29 && minutes <= 31);
     }
 
-    private void LogHalfReset(int rowIndex, TimeSpan prevTime, TimeSpan currentTime, MatchFileDto dto)
+    private async Task LogHalfResetAsync(int rowIndex, TimeSpan prevTime, TimeSpan currentTime, MatchFileDto dto)
     {
         var log =
         $"""
-        {DateTime.Now}
+        [{DateTime.Now:yyyy-MM-dd HH:mm:ss}]
         HALF-RESET détecté
         Row: {rowIndex}
         PrevTime: {prevTime}
@@ -1210,10 +1293,10 @@ public partial class IntegrationViewModel : ObservableObject
         ----
         """;
 
-        File.AppendAllText("integration_halftime.log", log);
+        await LogToFileAsync("integration_halftime.log", log + Environment.NewLine);
     }
 
-    private void LogSkip(
+    private async Task LogSkipAsync(
         string reason,
         int rowIndex,
         MatchFileDto dto,
@@ -1225,7 +1308,7 @@ public partial class IntegrationViewModel : ObservableObject
     {
         var log =
         $"""
-        {DateTime.Now}
+        [{DateTime.Now:yyyy-MM-dd HH:mm:ss}]
         SKIP: {reason}
         Row: {rowIndex}
         Player: {dto.PlayerId}
@@ -1241,7 +1324,23 @@ public partial class IntegrationViewModel : ObservableObject
         ----
         """;
 
-        File.AppendAllText("integration_skips.log", log);
+        await LogToFileAsync("integration_skips.log", log + Environment.NewLine);
+    }
+
+    private async Task LogAsync(string message)
+        => await LogToFileAsync("integration_errors.log", $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
+
+    private static async Task LogToFileAsync(string path, string content)
+    {
+        await _logSemaphore.WaitAsync();
+        try
+        {
+            await File.AppendAllTextAsync(path, content);
+        }
+        finally
+        {
+            _logSemaphore.Release();
+        }
     }
 
     private sealed class IdNameDto { public int Id { get; set; } }
@@ -1277,11 +1376,5 @@ public partial class IntegrationViewModel : ObservableObject
         public string TeamName { get; set; } = string.Empty;
         public PlayerListItemDto? SourcePlayer { get; set; }
     }
-    private void LogSimple(string msg)
-    {
-        File.AppendAllText("integration_errors.log",
-            $"{DateTime.Now} - {msg}\n");
-    }
-
 
 }

@@ -13,6 +13,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Net;
+using System.Net.Http;
 using System.Windows;
 
 namespace HandballIntegration
@@ -28,7 +30,7 @@ namespace HandballIntegration
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
                 System.IO.File.AppendAllText(
-                    @"C:\Users\donovan.bierque\Desktop\wpf-crash.log",
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "wpf-crash.log"),
                     $"[{DateTime.Now:HH:mm:ss}] STARTUP_CRASH: {args.ExceptionObject}\n\n");
             };
 
@@ -61,7 +63,14 @@ namespace HandballIntegration
                         client.BaseAddress = new Uri(context.Configuration["ApiSettings:ApiBaseUrl"]!);
                         client.Timeout = TimeSpan.FromSeconds(
                             context.Configuration.GetValue("ApiSettings:TimeoutSeconds", 30));
-                    }).AddHttpMessageHandler<AdminSessionHandler>();
+                    })
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                    {
+                        AutomaticDecompression = DecompressionMethods.GZip
+                                               | DecompressionMethods.Deflate
+                                               | DecompressionMethods.Brotli
+                    })
+                    .AddHttpMessageHandler<AdminSessionHandler>();
                     services.AddSingleton<IAdminCapabilitiesService, AdminCapabilitiesService>();
 
                     services.AddHttpClient<IAdminApiTransport, AdminApiTransport>(client =>
@@ -69,7 +78,14 @@ namespace HandballIntegration
                         client.BaseAddress = new Uri(context.Configuration["ApiSettings:ApiBaseUrl"]!);
                         client.Timeout = TimeSpan.FromSeconds(
                             context.Configuration.GetValue("ApiSettings:TimeoutSeconds", 30));
-                    }).AddHttpMessageHandler<AdminSessionHandler>();
+                    })
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                    {
+                        AutomaticDecompression = DecompressionMethods.GZip
+                                               | DecompressionMethods.Deflate
+                                               | DecompressionMethods.Brotli
+                    })
+                    .AddHttpMessageHandler<AdminSessionHandler>();
                     services.AddTransient<IAdminDashboardApiClient, AdminDashboardApiClient>();
                     services.AddTransient<IAdminImportApiClient, AdminImportApiClient>();
                     services.AddTransient<IAdminMatchApiClient, AdminMatchApiClient>();
@@ -116,7 +132,7 @@ namespace HandballIntegration
             DispatcherUnhandledException += (_, args) =>
             {
                 System.IO.File.AppendAllText(
-                    @"C:\Users\donovan.bierque\Desktop\wpf-crash.log",
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "wpf-crash.log"),
                     $"[{DateTime.Now:HH:mm:ss}] {args.Exception}\n\n");
                 args.Handled = false;
             };

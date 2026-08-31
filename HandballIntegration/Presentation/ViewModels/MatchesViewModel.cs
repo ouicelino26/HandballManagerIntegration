@@ -452,7 +452,7 @@ public sealed class MatchesViewModel : AdminPageViewModelBase
     private bool CanSubmitMatchRestore() =>
         CanArchiveMatch() &&
         Detail?.State == "ARCHIVED" &&
-        Impact is not null &&
+        Impact is { CanDelete: true } &&
         !string.IsNullOrWhiteSpace(LifecycleReason) &&
         string.Equals(ConfirmationPhrase.Trim(), "RESTAURER", StringComparison.Ordinal);
 
