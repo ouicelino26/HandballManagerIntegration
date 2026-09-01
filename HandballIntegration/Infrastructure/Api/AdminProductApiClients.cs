@@ -279,6 +279,16 @@ public sealed class AdminPlayerApiClient(IAdminApiTransport transport) : IAdminP
             $"api/v2/admin/players/{playerId}",
             request,
             cancellationToken: cancellationToken)).Value;
+
+    public async Task<PlayerMergeResult> MergePlayerAsync(
+        int targetId,
+        int sourcePlayerId,
+        CancellationToken cancellationToken = default) =>
+        (await transport.SendJsonAsync<PlayerMergeResult>(
+            HttpMethod.Post,
+            $"api/v2/admin/players/{targetId}/merge",
+            new { SourcePlayerId = sourcePlayerId },
+            cancellationToken: cancellationToken)).Value;
 }
 
 public sealed class AdminTeamApiClient(IAdminApiTransport transport) : IAdminTeamApiClient

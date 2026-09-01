@@ -37,6 +37,7 @@
                 <DataTemplate DataType="{x:Type vm:UsersAdminViewModel}"><views:UsersAdminView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
                 <DataTemplate DataType="{x:Type vm:BlockedModuleViewModel}"><views:BlockedModuleView/></DataTemplate>
+                <DataTemplate DataType="{x:Type vm:PlayerMergeViewModel}"><views:PlayerMergeView/></DataTemplate>
             </ResourceDictionary>
     </Application.Resources>
 

@@ -12,6 +12,7 @@ public sealed class AdminNavigationService : IAdminNavigationService
         new("matches", "Matchs", "Correction et cycle de vie", "MA", AdminPermissionNames.MatchesRead, AdminModuleStatus.Partial, true),
         new("events", "Evenements", "Depuis le contexte d'un match", "EV", AdminPermissionNames.EventsRead, AdminModuleStatus.Partial, true),
         new("players", "Joueuses", "Identites et rattachements", "JO", AdminPermissionNames.PlayersRead, AdminModuleStatus.Partial, true),
+        new("player-merge", "Fusion joueurs", "Detection doublons et fusion auditee", "FU", AdminPermissionNames.PlayersMerge, AdminModuleStatus.Available, true),
         new("teams", "Equipes", "Effectifs et identite", "EQ", AdminPermissionNames.TeamsRead, AdminModuleStatus.Partial, true),
         new("reference-data", "Referentiels", "Catalogues autorises", "RE", AdminPermissionNames.ReferenceDataManage, AdminModuleStatus.Partial, true),
         new("data-quality", "Qualite des donnees", "Anomalies et resolutions", "QU", AdminPermissionNames.DataQualityManage, AdminModuleStatus.BlockedByApi, false),

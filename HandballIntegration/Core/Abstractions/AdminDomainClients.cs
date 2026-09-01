@@ -124,6 +124,10 @@ public interface IAdminPlayerApiClient
         int playerId,
         AdminPlayerMutation request,
         CancellationToken cancellationToken = default);
+    Task<PlayerMergeResult> MergePlayerAsync(
+        int targetId,
+        int sourcePlayerId,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IAdminTeamApiClient

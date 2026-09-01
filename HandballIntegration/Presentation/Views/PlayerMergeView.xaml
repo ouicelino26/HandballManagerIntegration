@@ -1,0 +1,255 @@
+<UserControl x:Class="HandballIntegration.Presentation.Views.PlayerMergeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="clr-namespace:HandballIntegration.Components"
+             xmlns:views="clr-namespace:HandballIntegration.Presentation.Views">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="14"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <components:AdminPageHeader Eyebrow="FUSION DE JOUEUSES" Title="{Binding Title}"
+                                        Subtitle="{Binding Subtitle}"/>
+            <views:AdminStateView Grid.Row="2"/>
+
+            <!-- Detection and manual selection panels -->
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="18"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left — Auto-detection -->
+                <Border Style="{StaticResource AdminCardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="240"/>
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="1. Auto-detection des doublons" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Groupe les joueuses par nom normalise. Cliquez sur un groupe pour pre-remplir la selection."
+                                           Style="{StaticResource BodyTextStyle}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Detecter les doublons" VerticalAlignment="Top"
+                                    Command="{Binding LoadDuplicatesCommand}"
+                                    AutomationProperties.Name="Detecter les doublons par nom normalise"/>
+                        </Grid>
+
+                        <ListBox Grid.Row="2" ItemsSource="{Binding DuplicateGroups}"
+                                 SelectedItem="{Binding SelectedDuplicateGroup, Mode=TwoWay}"
+                                 Style="{StaticResource AdminNavigationListStyle}"
+                                 AutomationProperties.Name="Groupes de doublons detectes">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,4">
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <ItemsControl ItemsSource="{Binding Players}" Margin="0,3,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Foreground="{StaticResource SecondaryTextBrush}"
+                                                               FontSize="10" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="• "/>
+                                                        <Run Text="{Binding FullName}"/>
+                                                        <Run Text=" — "/>
+                                                        <Run Text="{Binding TeamName}"/>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <!-- Right — Manual selection -->
+                <Border Grid.Column="2" Style="{StaticResource AdminCardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="110"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="110"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="2. Selection manuelle" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Recherchez individuellement la source (sera supprimee) et la cible (recevra les evenements)."
+                                       Style="{StaticResource BodyTextStyle}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Source search -->
+                        <StackPanel Grid.Row="2">
+                            <TextBlock Text="SOURCE (sera supprimee)" Style="{StaticResource EyebrowTextStyle}"/>
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding SourceSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource AdminTextBoxStyle}"
+                                         AutomationProperties.Name="Rechercher la joueuse source"/>
+                                <Button Grid.Column="2" Content="Chercher" Command="{Binding SearchSourceCommand}"
+                                        AutomationProperties.Name="Lancer la recherche source"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <ListBox Grid.Row="4" ItemsSource="{Binding SourceSearchResults}"
+                                 SelectedItem="{Binding SelectedSource, Mode=TwoWay}"
+                                 Style="{StaticResource AdminNavigationListStyle}"
+                                 AutomationProperties.Name="Resultats de recherche source">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,2">
+                                        <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Foreground="{StaticResource SecondaryTextBrush}" FontSize="10" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding TeamName}"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding PositionName}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!-- Target search -->
+                        <StackPanel Grid.Row="6">
+                            <TextBlock Text="CIBLE (recoit les evenements)" Style="{StaticResource EyebrowTextStyle}"/>
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding TargetSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource AdminTextBoxStyle}"
+                                         AutomationProperties.Name="Rechercher la joueuse cible"/>
+                                <Button Grid.Column="2" Content="Chercher" Command="{Binding SearchTargetCommand}"
+                                        AutomationProperties.Name="Lancer la recherche cible"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <ListBox Grid.Row="8" ItemsSource="{Binding TargetSearchResults}"
+                                 SelectedItem="{Binding SelectedTarget, Mode=TwoWay}"
+                                 Style="{StaticResource AdminNavigationListStyle}"
+                                 AutomationProperties.Name="Resultats de recherche cible">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,2">
+                                        <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Foreground="{StaticResource SecondaryTextBrush}" FontSize="10" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding TeamName}"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding PositionName}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Confirmation zone -->
+            <Border Grid.Row="6" Style="{StaticResource AdminCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.3*"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Merge action -->
+                    <StackPanel>
+                        <TextBlock Text="3. Confirmation de la fusion" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="Tous les evenements et temps de jeu de la source seront reassignes a la cible. La joueuse source sera definitivement supprimee."
+                                   Style="{StaticResource BodyTextStyle}" Margin="0,4,0,12" TextWrapping="Wrap"/>
+
+                        <Border Padding="14" CornerRadius="12" Background="{StaticResource SoftNeutralBrush}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Resume de l'operation" Style="{StaticResource EyebrowTextStyle}"/>
+                                <TextBlock Text="{Binding MergeSummary}" Margin="0,8,0,0" FontWeight="SemiBold"
+                                           TextWrapping="Wrap" FontSize="13"/>
+                                <Grid Margin="0,10,0,0"
+                                      Visibility="{Binding CanMerge, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Padding="10" CornerRadius="10" Background="{StaticResource AccentAltSoftBrush}">
+                                        <StackPanel>
+                                            <TextBlock Text="SOURCE" Style="{StaticResource EyebrowTextStyle}"/>
+                                            <TextBlock Text="{Binding SelectedSource.FullName}" FontWeight="SemiBold"
+                                                       Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding SelectedSource.TeamName}" FontSize="11"
+                                                       Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="→" FontSize="18"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="{StaticResource AccentBrush}"/>
+                                    <Border Grid.Column="2" Padding="10" CornerRadius="10" Background="{StaticResource AccentSoftBrush}">
+                                        <StackPanel>
+                                            <TextBlock Text="CIBLE" Style="{StaticResource EyebrowTextStyle}"/>
+                                            <TextBlock Text="{Binding SelectedTarget.FullName}" FontWeight="SemiBold"
+                                                       Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding SelectedTarget.TeamName}" FontSize="11"
+                                                       Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="Fusionner les joueuses" Command="{Binding MergeCommand}"
+                                IsEnabled="{Binding CanMerge}" HorizontalAlignment="Left"
+                                AutomationProperties.Name="Executer la fusion irreversible"/>
+                    </StackPanel>
+
+                    <!-- Result panel — always shown, content conditional -->
+                    <Border Grid.Column="2" Padding="16" CornerRadius="14" Background="{StaticResource AccentAltSoftBrush}">
+                        <StackPanel>
+                            <TextBlock Text="4. Rapport de fusion" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Le rapport apparait apres chaque fusion confirmee."
+                                       Margin="0,4,0,14" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+                            <StackPanel Visibility="{Binding HasMergeResult, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border Margin="0,0,0,8" Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding LastMergeResult.MergedEventsCount}" Style="{StaticResource MetricValueTextStyle}"/>
+                                        <TextBlock Text="Evenements reassignes" Style="{StaticResource MetricLabelTextStyle}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Margin="0,0,0,8" Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding LastMergeResult.MergedTimePlayersCount}" Style="{StaticResource MetricValueTextStyle}"/>
+                                        <TextBlock Text="Temps de jeu reassignes" Style="{StaticResource MetricLabelTextStyle}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Padding="12" Background="{StaticResource SoftNeutralBrush}" CornerRadius="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding LastMergeResult.TargetPlayerName}" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Joueuse cible conservee" Style="{StaticResource MetricLabelTextStyle}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

@@ -17,6 +17,7 @@ public sealed class AdminModuleFactory(IServiceProvider services) : IAdminModule
         "integration" => services.GetRequiredService<LegacyIntegrationViewModel>(),
         "matches" or "events" => services.GetRequiredService<MatchesViewModel>(),
         "players" => services.GetRequiredService<PlayersAdminViewModel>(),
+        "player-merge" => services.GetRequiredService<PlayerMergeViewModel>(),
         "teams" => services.GetRequiredService<TeamsAdminViewModel>(),
         "reference-data" => services.GetRequiredService<ReferenceDataViewModel>(),
         "audit" => services.GetRequiredService<AuditViewModel>(),

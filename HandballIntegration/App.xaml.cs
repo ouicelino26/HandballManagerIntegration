@@ -110,6 +110,7 @@ namespace HandballIntegration
                     services.AddTransient<ImportHistoryViewModel>();
                     services.AddTransient<UsersAdminViewModel>();
                     services.AddTransient<SettingsViewModel>();
+                    services.AddTransient<PlayerMergeViewModel>();
                     services.AddTransient<LegacyIntegrationViewModel>();
                     services.AddTransient<AdminShellViewModel>();
                     services.AddTransient<LoginViewModel>();

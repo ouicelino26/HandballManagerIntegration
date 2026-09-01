@@ -463,3 +463,11 @@ public sealed record AdminPageRequest(
     int PageSize = 50,
     string? Search = null,
     string? OrderBy = null);
+
+public sealed record PlayerMergeResult(
+    int TargetPlayerId,
+    string TargetPlayerName,
+    int SourcePlayerId,
+    string SourcePlayerName,
+    int MergedEventsCount,
+    int MergedTimePlayersCount);
